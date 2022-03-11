@@ -1,0 +1,9 @@
+- org.jfree.chart.plot.XYPlot
+- org.jfree.chart.plot.CategoryPlot
+- org.jfree.chart.axis.NumberAxis
+- org.jfree.chart.axis.DateAxis
+- org.jfree.chart.axis.CyclicNumberAxis
+- org.jfree.chart.axis.LogAxis
+- org.jfree.chart.plot.SpiderWebPlot
+- org.jfree.chart.plot.PiePlot
+- org.jfree.chart.renderer.category.LineAndShapeRenderer

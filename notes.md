@@ -1,0 +1,2 @@
+- Java 11 needed, Java 17 not compatible
+- Compatible Maven 3.8.4
