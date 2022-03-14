@@ -97,7 +97,7 @@ import org.jfree.data.Range;
  *
  * @since 1.0.7
  */
-public class LogAxis extends ValueAxis {
+public class LogAxis extends NumberLogCommon {
 
     /** The logarithm base. */
     private double base = 10.0;
@@ -119,9 +119,6 @@ public class LogAxis extends ValueAxis {
     
     /**  The smallest value permitted on the axis. */
     private double smallestValue = 1E-100;
-
-    /** The current tick unit. */
-    private NumberTickUnit tickUnit;
 
     /** The override number format. */
     private NumberFormat numberFormatOverride;
@@ -254,57 +251,6 @@ public class LogAxis extends ValueAxis {
         fireChangeEvent();
     }
 
-    /**
-     * Returns the current tick unit.
-     *
-     * @return The current tick unit.
-     *
-     * @see #setTickUnit(NumberTickUnit)
-     */
-    public NumberTickUnit getTickUnit() {
-        return this.tickUnit;
-    }
-
-    /**
-     * Sets the tick unit for the axis and sends an {@link AxisChangeEvent} to
-     * all registered listeners.  A side effect of calling this method is that
-     * the "auto-select" feature for tick units is switched off (you can
-     * restore it using the {@link ValueAxis#setAutoTickUnitSelection(boolean)}
-     * method).
-     *
-     * @param unit  the new tick unit ({@code null} not permitted).
-     *
-     * @see #getTickUnit()
-     */
-    public void setTickUnit(NumberTickUnit unit) {
-        // defer argument checking...
-        setTickUnit(unit, true, true);
-    }
-
-    /**
-     * Sets the tick unit for the axis and, if requested, sends an
-     * {@link AxisChangeEvent} to all registered listeners.  In addition, an
-     * option is provided to turn off the "auto-select" feature for tick units
-     * (you can restore it using the
-     * {@link ValueAxis#setAutoTickUnitSelection(boolean)} method).
-     *
-     * @param unit  the new tick unit ({@code null} not permitted).
-     * @param notify  notify listeners?
-     * @param turnOffAutoSelect  turn off the auto-tick selection?
-     *
-     * @see #getTickUnit()
-     */
-    public void setTickUnit(NumberTickUnit unit, boolean notify,
-            boolean turnOffAutoSelect) {
-        Args.nullNotPermitted(unit, "unit");
-        this.tickUnit = unit;
-        if (turnOffAutoSelect) {
-            setAutoTickUnitSelection(false, false);
-        }
-        if (notify) {
-            fireChangeEvent();
-        }
-    }
 
     /**
      * Returns the number format override.  If this is non-{@code null}, 
@@ -510,47 +456,6 @@ public class LogAxis extends ValueAxis {
             setRange(new Range(lower, upper), false, false);
         }
 
-    }
-
-    /**
-     * Draws the axis on a Java 2D graphics device (such as the screen or a
-     * printer).
-     *
-     * @param g2  the graphics device ({@code null} not permitted).
-     * @param cursor  the cursor location (determines where to draw the axis).
-     * @param plotArea  the area within which the axes and plot should be drawn.
-     * @param dataArea  the area within which the data should be drawn.
-     * @param edge  the axis location ({@code null} not permitted).
-     * @param plotState  collects information about the plot ({@code null} 
-     *         permitted).
-     *
-     * @return The axis state (never {@code null}).
-     */
-    @Override
-    public AxisState draw(Graphics2D g2, double cursor, Rectangle2D plotArea,
-            Rectangle2D dataArea, RectangleEdge edge,
-            PlotRenderingInfo plotState) {
-
-        AxisState state;
-        // if the axis is not visible, don't draw it...
-        if (!isVisible()) {
-            state = new AxisState(cursor);
-            // even though the axis is not visible, we need ticks for the
-            // gridlines...
-            List ticks = refreshTicks(g2, state, dataArea, edge);
-            state.setTicks(ticks);
-            return state;
-        }
-        state = drawTickMarksAndLabels(g2, cursor, plotArea, dataArea, edge);
-        if (getAttributedLabel() != null) {
-            state = drawAttributedLabel(getAttributedLabel(), g2, plotArea, 
-                    dataArea, edge, state);
-            
-        } else {
-            state = drawLabel(getLabel(), g2, plotArea, dataArea, edge, state);
-        }
-        createAndAddEntity(cursor, state, dataArea, edge, plotState);
-        return state;
     }
 
     /**
@@ -860,25 +765,6 @@ public class LogAxis extends ValueAxis {
                     baseStr.length() + exponentStr.length());
             return as;
         }
-    }
-
-    /**
-     * Estimates the maximum tick label height.
-     *
-     * @param g2  the graphics device.
-     *
-     * @return The maximum height.
-     *
-     * @since 1.0.7
-     */
-    protected double estimateMaximumTickLabelHeight(Graphics2D g2) {
-        RectangleInsets tickLabelInsets = getTickLabelInsets();
-        double result = tickLabelInsets.getTop() + tickLabelInsets.getBottom();
-
-        Font tickLabelFont = getTickLabelFont();
-        FontRenderContext frc = g2.getFontRenderContext();
-        result += tickLabelFont.getLineMetrics("123", frc).getHeight();
-        return result;
     }
 
     /**

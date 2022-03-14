@@ -119,7 +119,6 @@ import java.util.Locale;
 
 import org.jfree.chart.event.AxisChangeEvent;
 import org.jfree.chart.plot.Plot;
-import org.jfree.chart.plot.PlotRenderingInfo;
 import org.jfree.chart.plot.ValueAxisPlot;
 import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.chart.ui.RectangleInsets;
@@ -140,7 +139,7 @@ import org.jfree.data.RangeType;
  * The {@code NumberAxis} class has a mechanism for automatically
  * selecting a tick unit that is appropriate for the current axis range.
  */
-public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
+public class NumberAxis extends NumberLogCommon implements Cloneable, Serializable {
 
     /** For serialization. */
     private static final long serialVersionUID = 2805933088476185789L;
@@ -178,9 +177,6 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
      */
     private boolean autoRangeStickyZero;
 
-    /** The tick unit for the axis. */
-    private NumberTickUnit tickUnit;
-
     /** The override number format. */
     private NumberFormat numberFormatOverride;
 
@@ -204,7 +200,6 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
         this.rangeType = RangeType.FULL;
         this.autoRangeIncludesZero = DEFAULT_AUTO_RANGE_INCLUDES_ZERO;
         this.autoRangeStickyZero = DEFAULT_AUTO_RANGE_STICKY_ZERO;
-        this.tickUnit = DEFAULT_TICK_UNIT;
         this.numberFormatOverride = null;
         this.markerBand = null;
     }
@@ -294,65 +289,6 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
             }
             notifyListeners(new AxisChangeEvent(this));
         }
-    }
-
-    /**
-     * Returns the tick unit for the axis.
-     * <p>
-     * Note: if the {@code autoTickUnitSelection} flag is
-     * {@code true} the tick unit may be changed while the axis is being
-     * drawn, so in that case the return value from this method may be
-     * irrelevant if the method is called before the axis has been drawn.
-     *
-     * @return The tick unit for the axis.
-     *
-     * @see #setTickUnit(NumberTickUnit)
-     * @see ValueAxis#isAutoTickUnitSelection()
-     */
-    public NumberTickUnit getTickUnit() {
-        return this.tickUnit;
-    }
-
-    /**
-     * Sets the tick unit for the axis and sends an {@link AxisChangeEvent} to
-     * all registered listeners.  A side effect of calling this method is that
-     * the "auto-select" feature for tick units is switched off (you can
-     * restore it using the {@link ValueAxis#setAutoTickUnitSelection(boolean)}
-     * method).
-     *
-     * @param unit  the new tick unit ({@code null} not permitted).
-     *
-     * @see #getTickUnit()
-     * @see #setTickUnit(NumberTickUnit, boolean, boolean)
-     */
-    public void setTickUnit(NumberTickUnit unit) {
-        // defer argument checking...
-        setTickUnit(unit, true, true);
-    }
-
-    /**
-     * Sets the tick unit for the axis and, if requested, sends an
-     * {@link AxisChangeEvent} to all registered listeners.  In addition, an
-     * option is provided to turn off the "auto-select" feature for tick units
-     * (you can restore it using the
-     * {@link ValueAxis#setAutoTickUnitSelection(boolean)} method).
-     *
-     * @param unit  the new tick unit ({@code null} not permitted).
-     * @param notify  notify listeners?
-     * @param turnOffAutoSelect  turn off the auto-tick selection?
-     */
-    public void setTickUnit(NumberTickUnit unit, boolean notify,
-            boolean turnOffAutoSelect) {
-
-        Args.nullNotPermitted(unit, "unit");
-        this.tickUnit = unit;
-        if (turnOffAutoSelect) {
-            setAutoTickUnitSelection(false, false);
-        }
-        if (notify) {
-            notifyListeners(new AxisChangeEvent(this));
-        }
-
     }
 
     /**
@@ -632,53 +568,6 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
     }
 
     /**
-     * Draws the axis on a Java 2D graphics device (such as the screen or a
-     * printer).
-     *
-     * @param g2  the graphics device ({@code null} not permitted).
-     * @param cursor  the cursor location.
-     * @param plotArea  the area within which the axes and data should be drawn
-     *                  ({@code null} not permitted).
-     * @param dataArea  the area within which the data should be drawn
-     *                  ({@code null} not permitted).
-     * @param edge  the location of the axis ({@code null} not permitted).
-     * @param plotState  collects information about the plot
-     *                   ({@code null} permitted).
-     *
-     * @return The axis state (never {@code null}).
-     */
-    @Override
-    public AxisState draw(Graphics2D g2, double cursor, Rectangle2D plotArea,
-            Rectangle2D dataArea, RectangleEdge edge,
-            PlotRenderingInfo plotState) {
-
-        AxisState state;
-        // if the axis is not visible, don't draw it...
-        if (!isVisible()) {
-            state = new AxisState(cursor);
-            // even though the axis is not visible, we need ticks for the
-            // gridlines...
-            List ticks = refreshTicks(g2, state, dataArea, edge);
-            state.setTicks(ticks);
-            return state;
-        }
-
-        // draw the tick marks and labels...
-        state = drawTickMarksAndLabels(g2, cursor, plotArea, dataArea, edge);
-
-        if (getAttributedLabel() != null) {
-            state = drawAttributedLabel(getAttributedLabel(), g2, plotArea, 
-                    dataArea, edge, state);
-            
-        } else {
-            state = drawLabel(getLabel(), g2, plotArea, dataArea, edge, state);
-        }
-        createAndAddEntity(cursor, state, dataArea, edge, plotState);
-        return state;
-
-    }
-
-    /**
      * Creates the standard tick units.
      * <P>
      * If you don't like these defaults, create your own instance of TickUnits
@@ -739,23 +628,6 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
     public static TickUnitSource createIntegerTickUnits(Locale locale) {
         NumberFormat numberFormat = NumberFormat.getNumberInstance(locale);
         return new NumberTickUnitSource(true, numberFormat);
-    }
-
-    /**
-     * Estimates the maximum tick label height.
-     *
-     * @param g2  the graphics device.
-     *
-     * @return The maximum height.
-     */
-    protected double estimateMaximumTickLabelHeight(Graphics2D g2) {
-        RectangleInsets tickLabelInsets = getTickLabelInsets();
-        double result = tickLabelInsets.getTop() + tickLabelInsets.getBottom();
-
-        Font tickLabelFont = getTickLabelFont();
-        FontRenderContext frc = g2.getFontRenderContext();
-        result += tickLabelFont.getLineMetrics("123", frc).getHeight();
-        return result;
     }
 
     /**
@@ -942,89 +814,8 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
      *
      * @return A list of ticks.
      */
-    protected List refreshTicksHorizontal(Graphics2D g2,
-            Rectangle2D dataArea, RectangleEdge edge) {
-
-        List result = new java.util.ArrayList();
-
-        Font tickLabelFont = getTickLabelFont();
-        g2.setFont(tickLabelFont);
-
-        if (isAutoTickUnitSelection()) {
-            selectAutoTickUnit(g2, dataArea, edge);
-        }
-
-        TickUnit tu = getTickUnit();
-        double size = tu.getSize();
-        int count = calculateVisibleTickCount();
-        double lowestTickValue = calculateLowestVisibleTickValue();
-
-        if (count <= ValueAxis.MAXIMUM_TICK_COUNT) {
-            int minorTickSpaces = getMinorTickCount();
-            if (minorTickSpaces <= 0) {
-                minorTickSpaces = tu.getMinorTickCount();
-            }
-            for (int minorTick = 1; minorTick < minorTickSpaces; minorTick++) {
-                double minorTickValue = lowestTickValue 
-                        - size * minorTick / minorTickSpaces;
-                if (getRange().contains(minorTickValue)) {
-                    result.add(new NumberTick(TickType.MINOR, minorTickValue,
-                            "", TextAnchor.TOP_CENTER, TextAnchor.CENTER,
-                            0.0));
-                }
-            }
-            for (int i = 0; i < count; i++) {
-                double currentTickValue = lowestTickValue + (i * size);
-                String tickLabel;
-                NumberFormat formatter = getNumberFormatOverride();
-                if (formatter != null) {
-                    tickLabel = formatter.format(currentTickValue);
-                }
-                else {
-                    tickLabel = getTickUnit().valueToString(currentTickValue);
-                }
-                TextAnchor anchor, rotationAnchor;
-                double angle = 0.0;
-                if (isVerticalTickLabels()) {
-                    anchor = TextAnchor.CENTER_RIGHT;
-                    rotationAnchor = TextAnchor.CENTER_RIGHT;
-                    if (edge == RectangleEdge.TOP) {
-                        angle = Math.PI / 2.0;
-                    }
-                    else {
-                        angle = -Math.PI / 2.0;
-                    }
-                }
-                else {
-                    if (edge == RectangleEdge.TOP) {
-                        anchor = TextAnchor.BOTTOM_CENTER;
-                        rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                    }
-                    else {
-                        anchor = TextAnchor.TOP_CENTER;
-                        rotationAnchor = TextAnchor.TOP_CENTER;
-                    }
-                }
-
-                Tick tick = new NumberTick(new Double(currentTickValue),
-                        tickLabel, anchor, rotationAnchor, angle);
-                result.add(tick);
-                double nextTickValue = lowestTickValue + ((i + 1) * size);
-                for (int minorTick = 1; minorTick < minorTickSpaces;
-                        minorTick++) {
-                    double minorTickValue = currentTickValue
-                            + (nextTickValue - currentTickValue)
-                            * minorTick / minorTickSpaces;
-                    if (getRange().contains(minorTickValue)) {
-                        result.add(new NumberTick(TickType.MINOR,
-                                minorTickValue, "", TextAnchor.TOP_CENTER,
-                                TextAnchor.CENTER, 0.0));
-                    }
-                }
-            }
-        }
-        return result;
-
+    protected List refreshTicksHorizontal(Graphics2D g2, Rectangle2D dataArea, RectangleEdge edge) {
+        return refreshTicksRefactored(g2, dataArea, edge, false);
     }
 
     /**
@@ -1037,14 +828,29 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
      *
      * @return A list of ticks.
      */
-    protected List refreshTicksVertical(Graphics2D g2,
-            Rectangle2D dataArea, RectangleEdge edge) {
+    protected List refreshTicksVertical(Graphics2D g2, Rectangle2D dataArea, RectangleEdge edge) {
+        return refreshTicksRefactored(g2, dataArea, edge, true);
+    }
+
+    /**
+     * Calculates the positions of the tick labels for the axis, storing the
+     * results in the tick label list (ready for drawing).
+     *
+     * @param g2  the graphics device.
+     * @param dataArea  the area in which the data should be drawn.
+     * @param edge  the location of the axis.
+     * @param vertical  boolean, true if vertical refresh, false if horizontal
+     *
+     * @return A list of ticks.
+     */
+    protected List refreshTicksRefactored(Graphics2D g2, Rectangle2D dataArea, RectangleEdge edge, boolean vertical) {
 
         List result = new java.util.ArrayList();
-        result.clear();
+        if(vertical) result.clear();
 
         Font tickLabelFont = getTickLabelFont();
         g2.setFont(tickLabelFont);
+
         if (isAutoTickUnitSelection()) {
             selectAutoTickUnit(g2, dataArea, edge);
         }
@@ -1068,7 +874,6 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
                             0.0));
                 }
             }
-
             for (int i = 0; i < count; i++) {
                 double currentTickValue = lowestTickValue + (i * size);
                 String tickLabel;
@@ -1079,37 +884,8 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
                 else {
                     tickLabel = getTickUnit().valueToString(currentTickValue);
                 }
-
-                TextAnchor anchor;
-                TextAnchor rotationAnchor;
-                double angle = 0.0;
-                if (isVerticalTickLabels()) {
-                    if (edge == RectangleEdge.LEFT) {
-                        anchor = TextAnchor.BOTTOM_CENTER;
-                        rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                        angle = -Math.PI / 2.0;
-                    }
-                    else {
-                        anchor = TextAnchor.BOTTOM_CENTER;
-                        rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                        angle = Math.PI / 2.0;
-                    }
-                }
-                else {
-                    if (edge == RectangleEdge.LEFT) {
-                        anchor = TextAnchor.CENTER_RIGHT;
-                        rotationAnchor = TextAnchor.CENTER_RIGHT;
-                    }
-                    else {
-                        anchor = TextAnchor.CENTER_LEFT;
-                        rotationAnchor = TextAnchor.CENTER_LEFT;
-                    }
-                }
-
-                Tick tick = new NumberTick(new Double(currentTickValue),
-                        tickLabel, anchor, rotationAnchor, angle);
+                Tick tick = refreshTick(edge, vertical, currentTickValue, tickLabel);
                 result.add(tick);
-
                 double nextTickValue = lowestTickValue + ((i + 1) * size);
                 for (int minorTick = 1; minorTick < minorTickSpaces;
                         minorTick++) {
@@ -1126,6 +902,74 @@ public class NumberAxis extends ValueAxis implements Cloneable, Serializable {
         }
         return result;
 
+    }
+
+
+
+    private Tick refreshTick(RectangleEdge edge, boolean vertical, double currentTickValue, String tickLabel) {
+        if(vertical) {
+            return getTickVerticallyRefreshed(edge, currentTickValue, tickLabel);
+        } else {
+            return getTickHorizontallyRefreshed(edge, currentTickValue, tickLabel);
+        }
+    }
+
+    protected Tick getTickHorizontallyRefreshed(RectangleEdge edge, double currentTickValue, String tickLabel) {
+        TextAnchor anchor, rotationAnchor;
+        double angle = 0.0;
+        if (isVerticalTickLabels()) {
+            anchor = TextAnchor.CENTER_RIGHT;
+            rotationAnchor = TextAnchor.CENTER_RIGHT;
+            if (edge == RectangleEdge.TOP) {
+                angle = Math.PI / 2.0;
+            }
+            else {
+                angle = -Math.PI / 2.0;
+            }
+        }
+        else {
+            if (edge == RectangleEdge.TOP) {
+                anchor = TextAnchor.BOTTOM_CENTER;
+                rotationAnchor = TextAnchor.BOTTOM_CENTER;
+            }
+            else {
+                anchor = TextAnchor.TOP_CENTER;
+                rotationAnchor = TextAnchor.TOP_CENTER;
+            }
+        }
+        Tick tick = new NumberTick(new Double(currentTickValue),
+                tickLabel, anchor, rotationAnchor, angle);
+        return tick;
+    }
+
+    protected Tick getTickVerticallyRefreshed(RectangleEdge edge, double currentTickValue, String tickLabel) {
+        TextAnchor anchor, rotationAnchor;
+        double angle = 0.0;
+        if (isVerticalTickLabels()) {
+            if (edge == RectangleEdge.LEFT) {
+                anchor = TextAnchor.BOTTOM_CENTER;
+                rotationAnchor = TextAnchor.BOTTOM_CENTER;
+                angle = -Math.PI / 2.0;
+            }
+            else {
+                anchor = TextAnchor.BOTTOM_CENTER;
+                rotationAnchor = TextAnchor.BOTTOM_CENTER;
+                angle = Math.PI / 2.0;
+            }
+        }
+        else {
+            if (edge == RectangleEdge.LEFT) {
+                anchor = TextAnchor.CENTER_RIGHT;
+                rotationAnchor = TextAnchor.CENTER_RIGHT;
+            }
+            else {
+                anchor = TextAnchor.CENTER_LEFT;
+                rotationAnchor = TextAnchor.CENTER_LEFT;
+            }
+        }
+        Tick tick = new NumberTick(new Double(currentTickValue),
+                tickLabel, anchor, rotationAnchor, angle);
+        return tick;
     }
 
     /**

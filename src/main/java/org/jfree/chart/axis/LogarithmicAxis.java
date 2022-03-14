@@ -836,32 +836,7 @@ public class LogarithmicAxis extends NumberAxis {
 
                 if (currentTickValue >= lowerBoundVal - SMALL_LOG_VALUE) {
                     //tick value not below lowest data value
-                    TextAnchor anchor;
-                    TextAnchor rotationAnchor;
-                    double angle = 0.0;
-                    if (isVerticalTickLabels()) {
-                        anchor = TextAnchor.CENTER_RIGHT;
-                        rotationAnchor = TextAnchor.CENTER_RIGHT;
-                        if (edge == RectangleEdge.TOP) {
-                            angle = Math.PI / 2.0;
-                        }
-                        else {
-                            angle = -Math.PI / 2.0;
-                        }
-                    }
-                    else {
-                        if (edge == RectangleEdge.TOP) {
-                            anchor = TextAnchor.BOTTOM_CENTER;
-                            rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                        }
-                        else {
-                            anchor = TextAnchor.TOP_CENTER;
-                            rotationAnchor = TextAnchor.TOP_CENTER;
-                        }
-                    }
-
-                    Tick tick = new NumberTick(new Double(currentTickValue),
-                            tickLabel, anchor, rotationAnchor, angle);
+                    Tick tick = getTickHorizontallyRefreshed(edge, currentTickValue, tickLabel);
                     ticks.add(tick);
                 }
             }
@@ -1026,34 +1001,8 @@ public class LogarithmicAxis extends NumberAxis {
 
                 if (tickVal >= lowerBoundVal - SMALL_LOG_VALUE) {
                     //tick value not below lowest data value
-                    TextAnchor anchor;
-                    TextAnchor rotationAnchor;
-                    double angle = 0.0;
-                    if (isVerticalTickLabels()) {
-                        if (edge == RectangleEdge.LEFT) {
-                            anchor = TextAnchor.BOTTOM_CENTER;
-                            rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                            angle = -Math.PI / 2.0;
-                        }
-                        else {
-                            anchor = TextAnchor.BOTTOM_CENTER;
-                            rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                            angle = Math.PI / 2.0;
-                        }
-                    }
-                    else {
-                        if (edge == RectangleEdge.LEFT) {
-                            anchor = TextAnchor.CENTER_RIGHT;
-                            rotationAnchor = TextAnchor.CENTER_RIGHT;
-                        }
-                        else {
-                            anchor = TextAnchor.CENTER_LEFT;
-                            rotationAnchor = TextAnchor.CENTER_LEFT;
-                        }
-                    }
                     //create tick object and add to list:
-                    ticks.add(new NumberTick(new Double(tickVal), tickLabel,
-                            anchor, rotationAnchor, angle));
+                    ticks.add(getTickVerticallyRefreshed(edge, tickVal, tickLabel));
                 }
             }
         }

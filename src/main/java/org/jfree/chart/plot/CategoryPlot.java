@@ -219,6 +219,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.LegendItemCollection;
+import org.jfree.chart.LegendItemSource;
 import org.jfree.chart.annotations.Annotation;
 import org.jfree.chart.annotations.CategoryAnnotation;
 import org.jfree.chart.axis.Axis;
