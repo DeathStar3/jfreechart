@@ -233,11 +233,9 @@ import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.axis.ValueTick;
 import org.jfree.chart.event.AnnotationChangeEvent;
 import org.jfree.chart.event.AnnotationChangeListener;
-import org.jfree.chart.event.ChartChangeEventType;
 import org.jfree.chart.event.PlotChangeEvent;
 import org.jfree.chart.event.RendererChangeEvent;
 import org.jfree.chart.event.RendererChangeListener;
-import org.jfree.chart.renderer.category.AbstractCategoryItemRenderer;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
 import org.jfree.chart.renderer.category.CategoryItemRendererState;
 import org.jfree.chart.ui.Layer;
@@ -262,7 +260,7 @@ import org.jfree.data.general.DatasetUtils;
  * A general plotting class that uses data from a {@link CategoryDataset} and
  * renders each data item using a {@link CategoryItemRenderer}.
  */
-public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
+public class CategoryPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
         Zoomable, AnnotationChangeListener, RendererChangeListener,
         Cloneable, PublicCloneable, Serializable {
 
@@ -320,17 +318,8 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
             = ResourceBundleWrapper.getBundle(
             "org.jfree.chart.plot.LocalizationBundle");
 
-    /** The plot orientation. */
-    private PlotOrientation orientation;
-
-    /** The offset between the data area and the axes. */
-    private RectangleInsets axisOffset;
-
     /** Storage for the domain axes. */
     private Map<Integer, CategoryAxis> domainAxes;
-
-    /** Storage for the domain axis locations. */
-    private Map<Integer, AxisLocation> domainAxisLocations;
 
     /**
      * A flag that controls whether or not the shared domain axis is drawn
@@ -338,11 +327,6 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
      */
     private boolean drawSharedDomainAxis;
 
-    /** Storage for the range axes. */
-    private Map<Integer, ValueAxis> rangeAxes;
-
-    /** Storage for the range axis locations. */
-    private Map<Integer, AxisLocation> rangeAxisLocations;
 
     /** Storage for the datasets. */
     private Map<Integer, CategoryDataset> datasets;
@@ -859,100 +843,6 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
     }
 
     /**
-     * Returns the domain axis location for the primary domain axis.
-     *
-     * @return The location (never {@code null}).
-     *
-     * @see #getRangeAxisLocation()
-     */
-    public AxisLocation getDomainAxisLocation() {
-        return getDomainAxisLocation(0);
-    }
-
-    /**
-     * Returns the location for a domain axis.
-     *
-     * @param index  the axis index.
-     *
-     * @return The location.
-     *
-     * @see #setDomainAxisLocation(int, AxisLocation)
-     */
-    public AxisLocation getDomainAxisLocation(int index) {
-        AxisLocation result = this.domainAxisLocations.get(index);
-        if (result == null) {
-            result = AxisLocation.getOpposite(getDomainAxisLocation(0));
-        }
-        return result;
-    }
-
-    /**
-     * Sets the location of the domain axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param location  the axis location ({@code null} not permitted).
-     *
-     * @see #getDomainAxisLocation()
-     * @see #setDomainAxisLocation(int, AxisLocation)
-     */
-    public void setDomainAxisLocation(AxisLocation location) {
-        // delegate...
-        setDomainAxisLocation(0, location, true);
-    }
-
-    /**
-     * Sets the location of the domain axis and, if requested, sends a
-     * {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param location  the axis location ({@code null} not permitted).
-     * @param notify  a flag that controls whether listeners are notified.
-     */
-    public void setDomainAxisLocation(AxisLocation location, boolean notify) {
-        // delegate...
-        setDomainAxisLocation(0, location, notify);
-    }
-
-    /**
-     * Sets the location for a domain axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param index  the axis index.
-     * @param location  the location.
-     *
-     * @see #getDomainAxisLocation(int)
-     * @see #setRangeAxisLocation(int, AxisLocation)
-     */
-    public void setDomainAxisLocation(int index, AxisLocation location) {
-        // delegate...
-        setDomainAxisLocation(index, location, true);
-    }
-
-    /**
-     * Sets the location for a domain axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param index  the axis index.
-     * @param location  the location.
-     * @param notify  notify listeners?
-     *
-     * @since 1.0.5
-     *
-     * @see #getDomainAxisLocation(int)
-     * @see #setRangeAxisLocation(int, AxisLocation, boolean)
-     */
-    public void setDomainAxisLocation(int index, AxisLocation location,
-            boolean notify) {
-        if (index == 0 && location == null) {
-            throw new IllegalArgumentException(
-                    "Null 'location' for index 0 not permitted.");
-        }
-        this.domainAxisLocations.put(index, location);
-        if (notify) {
-            fireChangeEvent();
-        }
-    }
-
-    /**
      * Returns the domain axis edge.  This is derived from the axis location
      * and the plot orientation.
      *
@@ -1014,16 +904,6 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
         }
     }
 
-    /**
-     * Returns the range axis for the plot.  If the range axis for this plot is
-     * null, then the method will return the parent plot's range axis (if there
-     * is a parent plot).
-     *
-     * @return The range axis (possibly {@code null}).
-     */
-    public ValueAxis getRangeAxis() {
-        return getRangeAxis(0);
-    }
 
     /**
      * Returns a range axis.
@@ -1032,6 +912,7 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
      *
      * @return The axis ({@code null} possible).
      */
+    @Override
     public ValueAxis getRangeAxis(int index) {
         ValueAxis result = this.rangeAxes.get(index);
         if (result == null) {
@@ -1050,6 +931,7 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
      *
      * @param axis  the axis ({@code null} permitted).
      */
+    @Override
     public void setRangeAxis(ValueAxis axis) {
         setRangeAxis(0, axis);
     }
@@ -1065,31 +947,6 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
         setRangeAxis(index, axis, true);
     }
 
-    /**
-     * Sets a range axis and, if requested, sends a {@link PlotChangeEvent} to
-     * all registered listeners.
-     *
-     * @param index  the axis index.
-     * @param axis  the axis.
-     * @param notify  notify listeners?
-     */
-    public void setRangeAxis(int index, ValueAxis axis, boolean notify) {
-        ValueAxis existing = this.rangeAxes.get(index);
-        if (existing != null) {
-            existing.removeChangeListener(this);
-        }
-        if (axis != null) {
-            axis.setPlot(this);
-        }
-        this.rangeAxes.put(index, axis);
-        if (axis != null) {
-            axis.configure();
-            axis.addChangeListener(this);
-        }
-        if (notify) {
-            fireChangeEvent();
-        }
-    }
 
     /**
      * Sets the range axes for this plot and sends a {@link PlotChangeEvent}
@@ -1132,104 +989,6 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
         return result;
     }
 
-    private int findRangeAxisIndex(ValueAxis axis) {
-        for (Entry<Integer, ValueAxis> entry : this.rangeAxes.entrySet()) {
-            if (entry.getValue() == axis) {
-                return entry.getKey();
-            }
-        }
-        return -1;
-    }
-    
-    /**
-     * Returns the range axis location.
-     *
-     * @return The location (never {@code null}).
-     */
-    public AxisLocation getRangeAxisLocation() {
-        return getRangeAxisLocation(0);
-    }
-
-    /**
-     * Returns the location for a range axis.
-     *
-     * @param index  the axis index.
-     *
-     * @return The location.
-     *
-     * @see #setRangeAxisLocation(int, AxisLocation)
-     */
-    public AxisLocation getRangeAxisLocation(int index) {
-        AxisLocation result = this.rangeAxisLocations.get(index);
-        if (result == null) {
-            result = AxisLocation.getOpposite(getRangeAxisLocation(0));
-        }
-        return result;
-    }
-
-    /**
-     * Sets the location of the range axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param location  the location ({@code null} not permitted).
-     *
-     * @see #setRangeAxisLocation(AxisLocation, boolean)
-     * @see #setDomainAxisLocation(AxisLocation)
-     */
-    public void setRangeAxisLocation(AxisLocation location) {
-        // defer argument checking...
-        setRangeAxisLocation(location, true);
-    }
-
-    /**
-     * Sets the location of the range axis and, if requested, sends a
-     * {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param location  the location ({@code null} not permitted).
-     * @param notify  notify listeners?
-     *
-     * @see #setDomainAxisLocation(AxisLocation, boolean)
-     */
-    public void setRangeAxisLocation(AxisLocation location, boolean notify) {
-        setRangeAxisLocation(0, location, notify);
-    }
-
-    /**
-     * Sets the location for a range axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param index  the axis index.
-     * @param location  the location.
-     *
-     * @see #getRangeAxisLocation(int)
-     * @see #setRangeAxisLocation(int, AxisLocation, boolean)
-     */
-    public void setRangeAxisLocation(int index, AxisLocation location) {
-        setRangeAxisLocation(index, location, true);
-    }
-
-    /**
-     * Sets the location for a range axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param index  the axis index.
-     * @param location  the location.
-     * @param notify  notify listeners?
-     *
-     * @see #getRangeAxisLocation(int)
-     * @see #setDomainAxisLocation(int, AxisLocation, boolean)
-     */
-    public void setRangeAxisLocation(int index, AxisLocation location,
-            boolean notify) {
-        if (index == 0 && location == null) {
-            throw new IllegalArgumentException(
-                    "Null 'location' for index 0 not permitted.");
-        }
-        this.rangeAxisLocations.put(index, location);
-        if (notify) {
-            fireChangeEvent();
-        }
-    }
 
     /**
      * Returns the edge where the primary range axis is located.
@@ -1252,39 +1011,6 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
         return Plot.resolveRangeAxisLocation(location, this.orientation);
     }
 
-    /**
-     * Returns the number of range axes.
-     *
-     * @return The axis count.
-     */
-    public int getRangeAxisCount() {
-        return this.rangeAxes.size();
-    }
-
-    /**
-     * Clears the range axes from the plot and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     */
-    public void clearRangeAxes() {
-        for (ValueAxis yAxis : this.rangeAxes.values()) {
-            if (yAxis != null) {
-                yAxis.removeChangeListener(this);
-            }
-        }
-        this.rangeAxes.clear();
-        fireChangeEvent();
-    }
-
-    /**
-     * Configures the range axes.
-     */
-    public void configureRangeAxes() {
-        for (ValueAxis yAxis : this.rangeAxes.values()) {
-            if (yAxis != null) {
-                yAxis.configure();
-            }
-        }
-    }
 
     /**
      * Returns the primary dataset for the plot.
@@ -2273,18 +1999,8 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
      */
     @Override
     public void datasetChanged(DatasetChangeEvent event) {
-        for (ValueAxis yAxis : this.rangeAxes.values()) {
-            if (yAxis != null) {
-                yAxis.configure();
-            }
-        }
-        if (getParent() != null) {
-            getParent().datasetChanged(event);
-        } else {
-            PlotChangeEvent e = new PlotChangeEvent(this);
-            e.setType(ChartChangeEventType.DATASET_UPDATED);
-            notifyListeners(e);
-        }
+        configureRangeAxes();
+        dealWithEventWhenDatasetChanges(event);
 
     }
 
@@ -3425,13 +3141,7 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
             }
         } else {
             // reserve space for the range axes (if any)...
-            for (ValueAxis yAxis : this.rangeAxes.values()) {
-                if (yAxis != null) {
-                    int i = findRangeAxisIndex(yAxis);
-                    RectangleEdge edge = getRangeAxisEdge(i);
-                    space = yAxis.reserveSpace(g2, this, plotArea, edge, space);
-                }
-            }
+            space = reserveSpaceForTheRangeAxes(g2, plotArea, space);
         }
         return space;
 
@@ -3511,7 +3221,7 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
         // calculate the data area...
         AxisSpace space = calculateAxisSpace(g2, area);
         Rectangle2D dataArea = space.shrink(area, null);
-        this.axisOffset.trim(dataArea);
+        trimAxisOffset(dataArea);
         dataArea = integerise(dataArea);
         if (dataArea.isEmpty()) {
             return;
@@ -3769,7 +3479,7 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
      *
      * @return A map containing the axis states.
      */
-    protected Map drawAxes(Graphics2D g2, Rectangle2D plotArea, 
+    protected Map<Axis, AxisState> drawAxes(Graphics2D g2, Rectangle2D plotArea,
             Rectangle2D dataArea, PlotRenderingInfo plotState) {
 
         AxisCollection axisCollection = new AxisCollection();
@@ -3782,73 +3492,7 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
             }
         }
 
-        // add range axes to lists...
-        for (ValueAxis yAxis : this.rangeAxes.values()) {
-            if (yAxis != null) {
-                int index = findRangeAxisIndex(yAxis);
-                axisCollection.add(yAxis, getRangeAxisEdge(index));
-            }
-        }
-
-        Map axisStateMap = new HashMap();
-
-        // draw the top axes
-        double cursor = dataArea.getMinY() - this.axisOffset.calculateTopOutset(
-                dataArea.getHeight());
-        Iterator iterator = axisCollection.getAxesAtTop().iterator();
-        while (iterator.hasNext()) {
-            Axis axis = (Axis) iterator.next();
-            if (axis != null) {
-                AxisState axisState = axis.draw(g2, cursor, plotArea, dataArea,
-                        RectangleEdge.TOP, plotState);
-                cursor = axisState.getCursor();
-                axisStateMap.put(axis, axisState);
-            }
-        }
-
-        // draw the bottom axes
-        cursor = dataArea.getMaxY()
-                 + this.axisOffset.calculateBottomOutset(dataArea.getHeight());
-        iterator = axisCollection.getAxesAtBottom().iterator();
-        while (iterator.hasNext()) {
-            Axis axis = (Axis) iterator.next();
-            if (axis != null) {
-                AxisState axisState = axis.draw(g2, cursor, plotArea, dataArea,
-                        RectangleEdge.BOTTOM, plotState);
-                cursor = axisState.getCursor();
-                axisStateMap.put(axis, axisState);
-            }
-        }
-
-        // draw the left axes
-        cursor = dataArea.getMinX()
-                 - this.axisOffset.calculateLeftOutset(dataArea.getWidth());
-        iterator = axisCollection.getAxesAtLeft().iterator();
-        while (iterator.hasNext()) {
-            Axis axis = (Axis) iterator.next();
-            if (axis != null) {
-                AxisState axisState = axis.draw(g2, cursor, plotArea, dataArea,
-                        RectangleEdge.LEFT, plotState);
-                cursor = axisState.getCursor();
-                axisStateMap.put(axis, axisState);
-            }
-        }
-
-        // draw the right axes
-        cursor = dataArea.getMaxX()
-                 + this.axisOffset.calculateRightOutset(dataArea.getWidth());
-        iterator = axisCollection.getAxesAtRight().iterator();
-        while (iterator.hasNext()) {
-            Axis axis = (Axis) iterator.next();
-            if (axis != null) {
-                AxisState axisState = axis.draw(g2, cursor, plotArea, dataArea,
-                        RectangleEdge.RIGHT, plotState);
-                cursor = axisState.getCursor();
-                axisStateMap.put(axis, axisState);
-            }
-        }
-
-        return axisStateMap;
+        return extractedDraw(g2, plotArea, dataArea, plotState, axisCollection);
 
     }
 
@@ -4689,24 +4333,8 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
     public void zoomRangeAxes(double factor, PlotRenderingInfo info,
                               Point2D source, boolean useAnchor) {
 
-        // perform the zoom on each range axis
-        for (ValueAxis rangeAxis : this.rangeAxes.values()) {
-            if (rangeAxis == null) {
-                continue;
-            }
-            if (useAnchor) {
-                // get the relevant source coordinate given the plot orientation
-                double sourceY = source.getY();
-                if (this.orientation.isHorizontal()) {
-                    sourceY = source.getX();
-                }
-                double anchorY = rangeAxis.java2DToValue(sourceY,
-                        info.getDataArea(), getRangeAxisEdge());
-                rangeAxis.resizeRange2(factor, anchorY);
-            } else {
-                rangeAxis.resizeRange(factor);
-            }
-        }
+        zoomRangeAxesWithFactor(factor, info, source, useAnchor);
+
     }
 
     /**
@@ -4720,12 +4348,9 @@ public class CategoryPlot extends Plot implements ValueAxisPlot, Pannable,
     @Override
     public void zoomRangeAxes(double lowerPercent, double upperPercent,
             PlotRenderingInfo state, Point2D source) {
-        for (ValueAxis yAxis : this.rangeAxes.values()) {
-            if (yAxis != null) {
-                yAxis.zoomRange(lowerPercent, upperPercent);
-            }
-        }
+        zoomRangeAxesDefault(lowerPercent, upperPercent);
     }
+
 
     /**
      * Returns the anchor value.
