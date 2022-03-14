@@ -389,15 +389,6 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
     /** The paint used to draw the domain grid-lines. */
     private transient Paint domainGridlinePaint;
 
-    /** A flag that controls whether the range grid-lines are visible. */
-    private boolean rangeGridlinesVisible;
-
-    /** The stroke used to draw the range grid-lines. */
-    private transient Stroke rangeGridlineStroke;
-
-    /** The paint used to draw the range grid-lines. */
-    private transient Paint rangeGridlinePaint;
-
     /**
      * A flag that controls whether the domain minor grid-lines are visible.
      *
@@ -418,27 +409,6 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
      * @since 1.0.12
      */
     private transient Paint domainMinorGridlinePaint;
-
-    /**
-     * A flag that controls whether the range minor grid-lines are visible.
-     *
-     * @since 1.0.12
-     */
-    private boolean rangeMinorGridlinesVisible;
-
-    /**
-     * The stroke used to draw the range minor grid-lines.
-     *
-     * @since 1.0.12
-     */
-    private transient Stroke rangeMinorGridlineStroke;
-
-    /**
-     * The paint used to draw the range minor grid-lines.
-     *
-     * @since 1.0.12
-     */
-    private transient Paint rangeMinorGridlinePaint;
 
     /**
      * A flag that controls whether or not the zero baseline against the domain
@@ -509,18 +479,6 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
      * data points.
      */
     private boolean rangeCrosshairLockedOnData = true;
-
-    /** A map of lists of foreground markers (optional) for the domain axes. */
-    private Map foregroundDomainMarkers;
-
-    /** A map of lists of background markers (optional) for the domain axes. */
-    private Map backgroundDomainMarkers;
-
-    /** A map of lists of foreground markers (optional) for the range axes. */
-    private Map foregroundRangeMarkers;
-
-    /** A map of lists of background markers (optional) for the range axes. */
-    private Map backgroundRangeMarkers;
 
     /**
      * A (possibly empty) list of annotations for the plot.  The list should
@@ -1693,183 +1651,6 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
         this.domainMinorGridlinePaint = paint;
         fireChangeEvent();
     }
-
-    /**
-     * Returns {@code true} if the range axis grid is visible, and
-     * {@code false} otherwise.
-     *
-     * @return A boolean.
-     *
-     * @see #setRangeGridlinesVisible(boolean)
-     */
-    public boolean isRangeGridlinesVisible() {
-        return this.rangeGridlinesVisible;
-    }
-
-    /**
-     * Sets the flag that controls whether or not the range axis grid lines
-     * are visible.
-     * <p>
-     * If the flag value is changed, a {@link PlotChangeEvent} is sent to all
-     * registered listeners.
-     *
-     * @param visible  the new value of the flag.
-     *
-     * @see #isRangeGridlinesVisible()
-     */
-    public void setRangeGridlinesVisible(boolean visible) {
-        if (this.rangeGridlinesVisible != visible) {
-            this.rangeGridlinesVisible = visible;
-            fireChangeEvent();
-        }
-    }
-
-    /**
-     * Returns the stroke for the grid lines (if any) plotted against the
-     * range axis.
-     *
-     * @return The stroke (never {@code null}).
-     *
-     * @see #setRangeGridlineStroke(Stroke)
-     */
-    public Stroke getRangeGridlineStroke() {
-        return this.rangeGridlineStroke;
-    }
-
-    /**
-     * Sets the stroke for the grid lines plotted against the range axis,
-     * and sends a {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param stroke  the stroke ({@code null} not permitted).
-     *
-     * @see #getRangeGridlineStroke()
-     */
-    public void setRangeGridlineStroke(Stroke stroke) {
-        Args.nullNotPermitted(stroke, "stroke");
-        this.rangeGridlineStroke = stroke;
-        fireChangeEvent();
-    }
-
-    /**
-     * Returns the paint for the grid lines (if any) plotted against the range
-     * axis.
-     *
-     * @return The paint (never {@code null}).
-     *
-     * @see #setRangeGridlinePaint(Paint)
-     */
-    public Paint getRangeGridlinePaint() {
-        return this.rangeGridlinePaint;
-    }
-
-    /**
-     * Sets the paint for the grid lines plotted against the range axis and
-     * sends a {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param paint  the paint ({@code null} not permitted).
-     *
-     * @see #getRangeGridlinePaint()
-     */
-    public void setRangeGridlinePaint(Paint paint) {
-        Args.nullNotPermitted(paint, "paint");
-        this.rangeGridlinePaint = paint;
-        fireChangeEvent();
-    }
-
-    /**
-     * Returns {@code true} if the range axis minor grid is visible, and
-     * {@code false} otherwise.
-     *
-     * @return A boolean.
-     *
-     * @see #setRangeMinorGridlinesVisible(boolean)
-     *
-     * @since 1.0.12
-     */
-    public boolean isRangeMinorGridlinesVisible() {
-        return this.rangeMinorGridlinesVisible;
-    }
-
-    /**
-     * Sets the flag that controls whether or not the range axis minor grid
-     * lines are visible.
-     * <p>
-     * If the flag value is changed, a {@link PlotChangeEvent} is sent to all
-     * registered listeners.
-     *
-     * @param visible  the new value of the flag.
-     *
-     * @see #isRangeMinorGridlinesVisible()
-     *
-     * @since 1.0.12
-     */
-    public void setRangeMinorGridlinesVisible(boolean visible) {
-        if (this.rangeMinorGridlinesVisible != visible) {
-            this.rangeMinorGridlinesVisible = visible;
-            fireChangeEvent();
-        }
-    }
-
-    /**
-     * Returns the stroke for the minor grid lines (if any) plotted against the
-     * range axis.
-     *
-     * @return The stroke (never {@code null}).
-     *
-     * @see #setRangeMinorGridlineStroke(Stroke)
-     *
-     * @since 1.0.12
-     */
-    public Stroke getRangeMinorGridlineStroke() {
-        return this.rangeMinorGridlineStroke;
-    }
-
-    /**
-     * Sets the stroke for the minor grid lines plotted against the range axis,
-     * and sends a {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param stroke  the stroke ({@code null} not permitted).
-     *
-     * @see #getRangeMinorGridlineStroke()
-     *
-     * @since 1.0.12
-     */
-    public void setRangeMinorGridlineStroke(Stroke stroke) {
-        Args.nullNotPermitted(stroke, "stroke");
-        this.rangeMinorGridlineStroke = stroke;
-        fireChangeEvent();
-    }
-
-    /**
-     * Returns the paint for the minor grid lines (if any) plotted against the
-     * range axis.
-     *
-     * @return The paint (never {@code null}).
-     *
-     * @see #setRangeMinorGridlinePaint(Paint)
-     *
-     * @since 1.0.12
-     */
-    public Paint getRangeMinorGridlinePaint() {
-        return this.rangeMinorGridlinePaint;
-    }
-
-    /**
-     * Sets the paint for the minor grid lines plotted against the range axis
-     * and sends a {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param paint  the paint ({@code null} not permitted).
-     *
-     * @see #getRangeMinorGridlinePaint()
-     *
-     * @since 1.0.12
-     */
-    public void setRangeMinorGridlinePaint(Paint paint) {
-        Args.nullNotPermitted(paint, "paint");
-        this.rangeMinorGridlinePaint = paint;
-        fireChangeEvent();
-    }
-
     /**
      * Returns a flag that controls whether or not a zero baseline is
      * displayed for the domain axis.
@@ -2274,7 +2055,7 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
      * @since 1.0.10
      */
     public void addDomainMarker(int index, Marker marker, Layer layer,
-            boolean notify) {
+                                boolean notify) {
         Args.nullNotPermitted(marker, "marker");
         Args.nullNotPermitted(layer, "layer");
         Collection markers;
@@ -2417,48 +2198,6 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
     }
 
     /**
-     * Clears all the range markers and sends a {@link PlotChangeEvent} to all
-     * registered listeners.
-     *
-     * @see #clearRangeMarkers()
-     */
-    public void clearRangeMarkers() {
-        if (this.backgroundRangeMarkers != null) {
-            Set<Integer> keys = this.backgroundRangeMarkers.keySet();
-            for (Integer key : keys) {
-                clearRangeMarkers(key);
-            }
-            this.backgroundRangeMarkers.clear();
-        }
-        if (this.foregroundRangeMarkers != null) {
-            Set<Integer> keys = this.foregroundRangeMarkers.keySet();
-            for (Integer key : keys) {
-                clearRangeMarkers(key);
-            }
-            this.foregroundRangeMarkers.clear();
-        }
-        fireChangeEvent();
-    }
-
-    /**
-     * Adds a marker for a specific dataset/renderer and sends a
-     * {@link PlotChangeEvent} to all registered listeners.
-     * <P>
-     * Typically a marker will be drawn by the renderer as a line perpendicular
-     * to the range axis, however this is entirely up to the renderer.
-     *
-     * @param index  the dataset/renderer index.
-     * @param marker  the marker.
-     * @param layer  the layer (foreground or background).
-     *
-     * @see #clearRangeMarkers(int)
-     * @see #addDomainMarker(int, Marker, Layer)
-     */
-    public void addRangeMarker(int index, Marker marker, Layer layer) {
-        addRangeMarker(index, marker, layer, true);
-    }
-
-    /**
      * Adds a marker for a specific dataset/renderer and, if requested, sends a
      * {@link PlotChangeEvent} to all registered listeners.
      * <P>
@@ -2499,103 +2238,6 @@ public class XYPlot extends CategoryXYCommon implements ValueAxisPlot, Pannable,
         }
     }
 
-    /**
-     * Clears the (foreground and background) range markers for a particular
-     * renderer.
-     *
-     * @param index  the renderer index.
-     */
-    public void clearRangeMarkers(int index) {
-        Integer key = new Integer(index);
-        if (this.backgroundRangeMarkers != null) {
-            Collection markers
-                = (Collection) this.backgroundRangeMarkers.get(key);
-            if (markers != null) {
-                Iterator iterator = markers.iterator();
-                while (iterator.hasNext()) {
-                    Marker m = (Marker) iterator.next();
-                    m.removeChangeListener(this);
-                }
-                markers.clear();
-            }
-        }
-        if (this.foregroundRangeMarkers != null) {
-            Collection markers
-                = (Collection) this.foregroundRangeMarkers.get(key);
-            if (markers != null) {
-                Iterator iterator = markers.iterator();
-                while (iterator.hasNext()) {
-                    Marker m = (Marker) iterator.next();
-                    m.removeChangeListener(this);
-                }
-                markers.clear();
-            }
-        }
-        fireChangeEvent();
-    }
-
-    /**
-     * Removes a marker for the range axis and sends a {@link PlotChangeEvent}
-     * to all registered listeners.
-     *
-     * @param marker the marker.
-     *
-     * @return A boolean indicating whether or not the marker was actually
-     *         removed.
-     *
-     * @since 1.0.7
-     */
-    public boolean removeRangeMarker(Marker marker) {
-        return removeRangeMarker(marker, Layer.FOREGROUND);
-    }
-
-    /**
-     * Removes a marker for the range axis in the specified layer and sends a
-     * {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param marker the marker ({@code null} not permitted).
-     * @param layer the layer (foreground or background).
-     *
-     * @return A boolean indicating whether or not the marker was actually
-     *         removed.
-     *
-     * @since 1.0.7
-     */
-    public boolean removeRangeMarker(Marker marker, Layer layer) {
-        return removeRangeMarker(0, marker, layer);
-    }
-
-    /**
-     * Removes a marker for a specific dataset/renderer and sends a
-     * {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param index the dataset/renderer index.
-     * @param marker the marker ({@code null} not permitted).
-     * @param layer the layer (foreground or background).
-     *
-     * @return A boolean indicating whether or not the marker was actually
-     *         removed.
-     *
-     * @since 1.0.7
-     */
-    public boolean removeRangeMarker(int index, Marker marker, Layer layer) {
-        return removeRangeMarker(index, marker, layer, true);
-    }
-
-    /**
-     * Removes a marker for a specific dataset/renderer and sends a
-     * {@link PlotChangeEvent} to all registered listeners.
-     *
-     * @param index  the dataset/renderer index.
-     * @param marker  the marker ({@code null} not permitted).
-     * @param layer  the layer (foreground or background) ({@code null} not permitted).
-     * @param notify  notify listeners?
-     *
-     * @return A boolean indicating whether or not the marker was actually
-     *         removed.
-     *
-     * @since 1.0.10
-     */
     public boolean removeRangeMarker(int index, Marker marker, Layer layer,
             boolean notify) {
         Args.nullNotPermitted(marker, "marker");

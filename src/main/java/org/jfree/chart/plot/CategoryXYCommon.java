@@ -3,16 +3,16 @@ package org.jfree.chart.plot;
 import org.jfree.chart.axis.*;
 import org.jfree.chart.event.ChartChangeEventType;
 import org.jfree.chart.event.PlotChangeEvent;
+import org.jfree.chart.ui.Layer;
 import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.chart.ui.RectangleInsets;
+import org.jfree.chart.util.Args;
 import org.jfree.data.general.DatasetChangeEvent;
 
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 public abstract class CategoryXYCommon extends Plot {
 
@@ -23,7 +23,6 @@ public abstract class CategoryXYCommon extends Plot {
     /** Storage for the range axis locations. */
     protected Map<Integer, AxisLocation> rangeAxisLocations;
 
-
     /** The offset between the data area and the axes. */
     protected RectangleInsets axisOffset;
 
@@ -32,6 +31,50 @@ public abstract class CategoryXYCommon extends Plot {
 
     /** Storage for the domain axis locations. */
     protected Map<Integer, AxisLocation> domainAxisLocations;
+    /**
+     * The stroke used to draw the range minor grid-lines.
+     *
+     * @since 1.0.13
+     */
+    protected transient Stroke rangeMinorGridlineStroke;
+    /**
+     * The paint used to draw the range minor grid-lines.
+     *
+     * @since 1.0.13
+     */
+    protected transient Paint rangeMinorGridlinePaint;
+    /**
+     * A flag that controls whether the grid-lines for the range axis are
+     * visible.
+     */
+    protected boolean rangeGridlinesVisible;
+
+    /** A map containing lists of markers for the domain axes. */
+    protected Map foregroundDomainMarkers;
+
+    /** A map containing lists of markers for the domain axes. */
+    protected Map backgroundDomainMarkers;
+
+    /** A map containing lists of markers for the range axes. */
+    protected Map foregroundRangeMarkers;
+
+    /** A map containing lists of markers for the range axes. */
+    protected Map backgroundRangeMarkers;
+
+    /**
+     * A flag that controls whether or not gridlines are shown for the minor
+     * tick values on the primary range axis.
+     *
+     * @since 1.0.13
+     */
+    protected boolean rangeMinorGridlinesVisible;
+
+    /** The stroke used to draw the range axis grid-lines. */
+    protected transient Stroke rangeGridlineStroke;
+
+    /** The paint used to draw the range axis grid-lines. */
+    protected transient Paint rangeGridlinePaint;
+
 
     /**
      * Returns the range axis for the plot.  If the range axis for this plot is
@@ -417,4 +460,567 @@ public abstract class CategoryXYCommon extends Plot {
         }
     }
 
+    /**
+     * Returns the stroke used to draw the grid-lines against the range axis.
+     *
+     * @return The stroke (never {@code null}).
+     *
+     * @see #setRangeGridlineStroke(Stroke)
+     */
+    public Stroke getRangeGridlineStroke() {
+        return this.rangeGridlineStroke;
+    }
+
+    /**
+     * Sets the stroke used to draw the grid-lines against the range axis and
+     * sends a {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param stroke  the stroke ({@code null} not permitted).
+     *
+     * @see #getRangeGridlineStroke()
+     */
+    public void setRangeGridlineStroke(Stroke stroke) {
+        Args.nullNotPermitted(stroke, "stroke");
+        this.rangeGridlineStroke = stroke;
+        fireChangeEvent();
+    }
+
+    /**
+     * Returns the paint used to draw the grid-lines against the range axis.
+     *
+     * @return The paint (never {@code null}).
+     *
+     * @see #setRangeGridlinePaint(Paint)
+     */
+    public Paint getRangeGridlinePaint() {
+        return this.rangeGridlinePaint;
+    }
+
+    /**
+     * Sets the paint used to draw the grid lines against the range axis and
+     * sends a {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param paint  the paint ({@code null} not permitted).
+     *
+     * @see #getRangeGridlinePaint()
+     */
+    public void setRangeGridlinePaint(Paint paint) {
+        Args.nullNotPermitted(paint, "paint");
+        this.rangeGridlinePaint = paint;
+        fireChangeEvent();
+    }
+
+    /**
+     * Returns {@code true} if the range axis minor grid is visible, and
+     * {@code false} otherwise.
+     *
+     * @return A boolean.
+     *
+     * @see #setRangeMinorGridlinesVisible(boolean)
+     *
+     * @since 1.0.13
+     */
+    public boolean isRangeMinorGridlinesVisible() {
+        return this.rangeMinorGridlinesVisible;
+    }
+
+    /**
+     * Sets the flag that controls whether or not the range axis minor grid
+     * lines are visible.
+     * <p>
+     * If the flag value is changed, a {@link PlotChangeEvent} is sent to all
+     * registered listeners.
+     *
+     * @param visible  the new value of the flag.
+     *
+     * @see #isRangeMinorGridlinesVisible()
+     *
+     * @since 1.0.13
+     */
+    public void setRangeMinorGridlinesVisible(boolean visible) {
+        if (this.rangeMinorGridlinesVisible != visible) {
+            this.rangeMinorGridlinesVisible = visible;
+            fireChangeEvent();
+        }
+    }
+
+    /**
+     * Returns the stroke for the minor grid lines (if any) plotted against the
+     * range axis.
+     *
+     * @return The stroke (never {@code null}).
+     *
+     * @see #setRangeMinorGridlineStroke(Stroke)
+     *
+     * @since 1.0.13
+     */
+    public Stroke getRangeMinorGridlineStroke() {
+        return this.rangeMinorGridlineStroke;
+    }
+
+    /**
+     * Sets the stroke for the minor grid lines plotted against the range axis,
+     * and sends a {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param stroke  the stroke ({@code null} not permitted).
+     *
+     * @see #getRangeMinorGridlineStroke()
+     *
+     * @since 1.0.13
+     */
+    public void setRangeMinorGridlineStroke(Stroke stroke) {
+        Args.nullNotPermitted(stroke, "stroke");
+        this.rangeMinorGridlineStroke = stroke;
+        fireChangeEvent();
+    }
+
+    /**
+     * Returns the paint for the minor grid lines (if any) plotted against the
+     * range axis.
+     *
+     * @return The paint (never {@code null}).
+     *
+     * @see #setRangeMinorGridlinePaint(Paint)
+     *
+     * @since 1.0.13
+     */
+    public Paint getRangeMinorGridlinePaint() {
+        return this.rangeMinorGridlinePaint;
+    }
+
+    /**
+     * Sets the paint for the minor grid lines plotted against the range axis
+     * and sends a {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param paint  the paint ({@code null} not permitted).
+     *
+     * @see #getRangeMinorGridlinePaint()
+     *
+     * @since 1.0.13
+     */
+    public void setRangeMinorGridlinePaint(Paint paint) {
+        Args.nullNotPermitted(paint, "paint");
+        this.rangeMinorGridlinePaint = paint;
+        fireChangeEvent();
+    }
+
+
+    /**
+     * Clears all the domain markers for the plot and sends a
+     * {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @see #clearRangeMarkers()
+     */
+    public void clearDomainMarkers() {
+        if (this.backgroundDomainMarkers != null) {
+            Set keys = this.backgroundDomainMarkers.keySet();
+            Iterator iterator = keys.iterator();
+            while (iterator.hasNext()) {
+                Integer key = (Integer) iterator.next();
+                clearDomainMarkers(key.intValue());
+            }
+            this.backgroundDomainMarkers.clear();
+        }
+        if (this.foregroundDomainMarkers != null) {
+            Set keys = this.foregroundDomainMarkers.keySet();
+            Iterator iterator = keys.iterator();
+            while (iterator.hasNext()) {
+                Integer key = (Integer) iterator.next();
+                clearDomainMarkers(key.intValue());
+            }
+            this.foregroundDomainMarkers.clear();
+        }
+        fireChangeEvent();
+    }
+    /**
+     * Clears all the domain markers for the specified renderer.
+     *
+     * @param index  the renderer index.
+     *
+     * @see #clearRangeMarkers(int)
+     */
+    public void clearDomainMarkers(int index) {
+        Integer key = new Integer(index);
+        if (this.backgroundDomainMarkers != null) {
+            Collection markers
+                    = (Collection) this.backgroundDomainMarkers.get(key);
+            if (markers != null) {
+                Iterator iterator = markers.iterator();
+                while (iterator.hasNext()) {
+                    Marker m = (Marker) iterator.next();
+                    m.removeChangeListener(this);
+                }
+                markers.clear();
+            }
+        }
+        if (this.foregroundDomainMarkers != null) {
+            Collection markers
+                    = (Collection) this.foregroundDomainMarkers.get(key);
+            if (markers != null) {
+                Iterator iterator = markers.iterator();
+                while (iterator.hasNext()) {
+                    Marker m = (Marker) iterator.next();
+                    m.removeChangeListener(this);
+                }
+                markers.clear();
+            }
+        }
+        fireChangeEvent();
+    }
+
+    /**
+     * Adds a marker for display by a particular renderer and, if requested,
+     * sends a {@link PlotChangeEvent} to all registered listeners.
+     * <P>
+     * Typically a marker will be drawn by the renderer as a line perpendicular
+     * to a domain axis, however this is entirely up to the renderer.
+     *
+     * @param index  the renderer index.
+     * @param marker  the marker ({@code null} not permitted).
+     * @param layer  the layer ({@code null} not permitted).
+     * @param notify  notify listeners?
+     *
+     * @since 1.0.10
+     *
+     * @see #removeDomainMarker(int, Marker, Layer, boolean)
+     */
+    public void addDomainMarker(int index, CategoryMarker marker, Layer layer,
+                                boolean notify) {
+        Args.nullNotPermitted(marker, "marker");
+        Args.nullNotPermitted(layer, "layer");
+        Collection markers;
+        if (layer == Layer.FOREGROUND) {
+            markers = (Collection) this.foregroundDomainMarkers.get(
+                    new Integer(index));
+            if (markers == null) {
+                markers = new java.util.ArrayList();
+                this.foregroundDomainMarkers.put(new Integer(index), markers);
+            }
+            markers.add(marker);
+        } else if (layer == Layer.BACKGROUND) {
+            markers = (Collection) this.backgroundDomainMarkers.get(
+                    new Integer(index));
+            if (markers == null) {
+                markers = new java.util.ArrayList();
+                this.backgroundDomainMarkers.put(new Integer(index), markers);
+            }
+            markers.add(marker);
+        }
+        marker.addChangeListener(this);
+        if (notify) {
+            fireChangeEvent();
+        }
+    }
+
+
+    /**
+     * Returns the list of domain markers (read only) for the specified layer.
+     *
+     * @param layer  the layer (foreground or background).
+     *
+     * @return The list of domain markers.
+     */
+    public Collection getDomainMarkers(Layer layer) {
+        return getDomainMarkers(0, layer);
+    }
+
+    /**
+     * Returns a collection of domain markers for a particular renderer and
+     * layer.
+     *
+     * @param index  the renderer index.
+     * @param layer  the layer.
+     *
+     * @return A collection of markers (possibly {@code null}).
+     */
+    public Collection getDomainMarkers(int index, Layer layer) {
+        Collection result = null;
+        Integer key = new Integer(index);
+        if (layer == Layer.FOREGROUND) {
+            result = (Collection) this.foregroundDomainMarkers.get(key);
+        }
+        else if (layer == Layer.BACKGROUND) {
+            result = (Collection) this.backgroundDomainMarkers.get(key);
+        }
+        if (result != null) {
+            result = Collections.unmodifiableCollection(result);
+        }
+        return result;
+    }
+
+    /**
+     * Removes a marker for the domain axis and sends a {@link PlotChangeEvent}
+     * to all registered listeners.
+     *
+     * @param marker  the marker.
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.7
+     */
+    public boolean removeDomainMarker(Marker marker) {
+        return removeDomainMarker(marker, Layer.FOREGROUND);
+    }
+
+    /**
+     * Removes a marker for the domain axis in the specified layer and sends a
+     * {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param marker the marker ({@code null} not permitted).
+     * @param layer the layer (foreground or background).
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.7
+     */
+    public boolean removeDomainMarker(Marker marker, Layer layer) {
+        return removeDomainMarker(0, marker, layer);
+    }
+
+    /**
+     * Removes a marker for a specific dataset/renderer and sends a
+     * {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param index the dataset/renderer index.
+     * @param marker the marker.
+     * @param layer the layer (foreground or background).
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.7
+     */
+    public boolean removeDomainMarker(int index, Marker marker, Layer layer) {
+        return removeDomainMarker(index, marker, layer, true);
+    }
+
+    /**
+     * Removes a marker for a specific dataset/renderer and, if requested,
+     * sends a {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param index the dataset/renderer index.
+     * @param marker the marker.
+     * @param layer the layer (foreground or background).
+     * @param notify  notify listeners?
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.10
+     */
+    public boolean removeDomainMarker(int index, Marker marker, Layer layer,
+                                      boolean notify) {
+        ArrayList markers;
+        if (layer == Layer.FOREGROUND) {
+            markers = (ArrayList) this.foregroundDomainMarkers.get(new Integer(
+                    index));
+        } else {
+            markers = (ArrayList) this.backgroundDomainMarkers.get(new Integer(
+                    index));
+        }
+        if (markers == null) {
+            return false;
+        }
+        boolean removed = markers.remove(marker);
+        if (removed && notify) {
+            fireChangeEvent();
+        }
+        return removed;
+    }
+
+    /**
+     * Adds a marker for display (in the foreground) against the range axis and
+     * sends a {@link PlotChangeEvent} to all registered listeners. Typically a
+     * marker will be drawn by the renderer as a line perpendicular to the
+     * range axis, however this is entirely up to the renderer.
+     *
+     * @param marker  the marker ({@code null} not permitted).
+     *
+     * @see #removeRangeMarker(Marker)
+     */
+    public void addRangeMarker(Marker marker) {
+        addRangeMarker(marker, Layer.FOREGROUND);
+    }
+
+    /**
+     * Adds a marker for display against the range axis and sends a
+     * {@link PlotChangeEvent} to all registered listeners.  Typically a marker
+     * will be drawn by the renderer as a line perpendicular to the range axis,
+     * however this is entirely up to the renderer.
+     *
+     * @param marker  the marker ({@code null} not permitted).
+     * @param layer  the layer (foreground or background) ({@code null}
+     *               not permitted).
+     *
+     * @see #removeRangeMarker(Marker, Layer)
+     */
+    public void addRangeMarker(Marker marker, Layer layer) {
+        addRangeMarker(0, marker, layer);
+    }
+
+    /**
+     * Adds a marker for a specific dataset/renderer and sends a
+     * {@link PlotChangeEvent} to all registered listeners.
+     * <P>
+     * Typically a marker will be drawn by the renderer as a line perpendicular
+     * to the range axis, however this is entirely up to the renderer.
+     *
+     * @param index  the dataset/renderer index.
+     * @param marker  the marker.
+     * @param layer  the layer (foreground or background).
+     *
+     * @see #clearRangeMarkers(int)
+     * @see #addDomainMarker(int, Marker, Layer)
+     */
+    public void addRangeMarker(int index, Marker marker, Layer layer) {
+        addRangeMarker(index, marker, layer, true);
+    }
+
+    protected abstract void addRangeMarker(int index, Marker marker, Layer layer, boolean notify);
+
+    /**
+     * Clears all the range markers and sends a {@link PlotChangeEvent} to all
+     * registered listeners.
+     *
+     * @see #clearRangeMarkers()
+     */
+    public void clearRangeMarkers() {
+        if (this.backgroundRangeMarkers != null) {
+            Set<Integer> keys = this.backgroundRangeMarkers.keySet();
+            for (Integer key : keys) {
+                clearRangeMarkers(key);
+            }
+            this.backgroundRangeMarkers.clear();
+        }
+        if (this.foregroundRangeMarkers != null) {
+            Set<Integer> keys = this.foregroundRangeMarkers.keySet();
+            for (Integer key : keys) {
+                clearRangeMarkers(key);
+            }
+            this.foregroundRangeMarkers.clear();
+        }
+        fireChangeEvent();
+    }
+
+    /**
+     * Clears all the range markers for the specified renderer.
+     *
+     * @param index  the renderer index.
+     *
+     * @see #clearDomainMarkers(int)
+     */
+    public void clearRangeMarkers(int index) {
+        Integer key = new Integer(index);
+        if (this.backgroundRangeMarkers != null) {
+            Collection markers
+                    = (Collection) this.backgroundRangeMarkers.get(key);
+            if (markers != null) {
+                Iterator iterator = markers.iterator();
+                while (iterator.hasNext()) {
+                    Marker m = (Marker) iterator.next();
+                    m.removeChangeListener(this);
+                }
+                markers.clear();
+            }
+        }
+        if (this.foregroundRangeMarkers != null) {
+            Collection markers
+                    = (Collection) this.foregroundRangeMarkers.get(key);
+            if (markers != null) {
+                Iterator iterator = markers.iterator();
+                while (iterator.hasNext()) {
+                    Marker m = (Marker) iterator.next();
+                    m.removeChangeListener(this);
+                }
+                markers.clear();
+            }
+        }
+        fireChangeEvent();
+    }
+
+    /**
+     * Removes a marker for the range axis and sends a {@link PlotChangeEvent}
+     * to all registered listeners.
+     *
+     * @param marker the marker.
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.7
+     *
+     * @see #addRangeMarker(Marker)
+     */
+    public boolean removeRangeMarker(Marker marker) {
+        return removeRangeMarker(marker, Layer.FOREGROUND);
+    }
+
+    /**
+     * Removes a marker for the range axis in the specified layer and sends a
+     * {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param marker the marker ({@code null} not permitted).
+     * @param layer the layer (foreground or background).
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.7
+     *
+     * @see #addRangeMarker(Marker, Layer)
+     */
+    public boolean removeRangeMarker(Marker marker, Layer layer) {
+        return removeRangeMarker(0, marker, layer);
+    }
+
+    /**
+     * Removes a marker for a specific dataset/renderer and sends a
+     * {@link PlotChangeEvent} to all registered listeners.
+     *
+     * @param index the dataset/renderer index.
+     * @param marker the marker.
+     * @param layer the layer (foreground or background).
+     *
+     * @return A boolean indicating whether or not the marker was actually
+     *         removed.
+     *
+     * @since 1.0.7
+     *
+     * @see #addRangeMarker(int, Marker, Layer)
+     */
+    public boolean removeRangeMarker(int index, Marker marker, Layer layer) {
+        return removeRangeMarker(index, marker, layer, true);
+    }
+
+    protected abstract boolean removeRangeMarker(int index, Marker marker, Layer layer, boolean notify);
+
+    /**
+     * Returns {@code true} if the range axis grid is visible, and
+     * {@code false} otherwise.
+     *
+     * @return A boolean.
+     *
+     * @see #setRangeGridlinesVisible(boolean)
+     */
+    public boolean isRangeGridlinesVisible() {
+        return this.rangeGridlinesVisible;
+    }
+
+    /**
+     * Sets the flag that controls whether or not grid-lines are drawn against
+     * the range axis.  If the flag changes value, a {@link PlotChangeEvent} is
+     * sent to all registered listeners.
+     *
+     * @param visible  the new value of the flag.
+     *
+     * @see #isRangeGridlinesVisible()
+     */
+    public void setRangeGridlinesVisible(boolean visible) {
+        if (this.rangeGridlinesVisible != visible) {
+            this.rangeGridlinesVisible = visible;
+            fireChangeEvent();
+        }
+    }
 }
