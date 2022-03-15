@@ -181,7 +181,7 @@ import org.jfree.data.time.Year;
  * For example, this allows you to create a date axis that only contains
  * working days.
  */
-public class DateAxis extends ValueAxis implements Cloneable, Serializable {
+public class DateAxis extends DatePeriodCommon implements Cloneable, Serializable {
 
     /** For serialization. */
     private static final long serialVersionUID = -1013460999649007604L;
@@ -758,32 +758,7 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
         DateRange range = (DateRange) getRange();
         double axisMin = this.timeline.toTimelineValue(range.getLowerMillis());
         double axisMax = this.timeline.toTimelineValue(range.getUpperMillis());
-        double result = 0.0;
-        if (RectangleEdge.isTopOrBottom(edge)) {
-            double minX = area.getX();
-            double maxX = area.getMaxX();
-            if (isInverted()) {
-                result = maxX + ((value - axisMin) / (axisMax - axisMin))
-                         * (minX - maxX);
-            }
-            else {
-                result = minX + ((value - axisMin) / (axisMax - axisMin))
-                         * (maxX - minX);
-            }
-        }
-        else if (RectangleEdge.isLeftOrRight(edge)) {
-            double minY = area.getMinY();
-            double maxY = area.getMaxY();
-            if (isInverted()) {
-                result = minY + (((value - axisMin) / (axisMax - axisMin))
-                         * (maxY - minY));
-            }
-            else {
-                result = maxY - (((value - axisMin) / (axisMax - axisMin))
-                         * (maxY - minY));
-            }
-        }
-        return result;
+        return getCoordinates(value, area, edge, axisMin, axisMax);
     }
 
     /**
@@ -1399,21 +1374,21 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
      * just look at two values: the lower bound and the upper bound for the
      * axis.  These two values will usually be representative.
      *
+     * @param resultInitialValue
      * @param g2  the graphics device.
      * @param unit  the tick unit to use for calculation.
      *
      * @return The estimated maximum width of the tick labels.
      */
-    private double estimateMaximumTickLabelWidth(Graphics2D g2, 
-            DateTickUnit unit) {
+    private double estimateMaximumTickLabelDimension(Graphics2D g2,
+                                                     DateTickUnit unit, boolean verticalOrHorizontal, double resultInitialValue) {
 
-        RectangleInsets tickLabelInsets = getTickLabelInsets();
-        double result = tickLabelInsets.getLeft() + tickLabelInsets.getRight();
+        double result = resultInitialValue;
 
         Font tickLabelFont = getTickLabelFont();
         FontRenderContext frc = g2.getFontRenderContext();
         LineMetrics lm = tickLabelFont.getLineMetrics("ABCxyz", frc);
-        if (isVerticalTickLabels()) {
+        if (verticalOrHorizontal) {
             // all tick labels have the same width (equal to the height of
             // the font)...
             result += lm.getHeight();
@@ -1456,42 +1431,32 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
      *
      * @return The estimated maximum width of the tick labels.
      */
+    private double estimateMaximumTickLabelWidth(Graphics2D g2,
+                                                 DateTickUnit unit) {
+
+        RectangleInsets tickLabelInsets = getTickLabelInsets();
+        return estimateMaximumTickLabelDimension(g2, unit, isVerticalTickLabels(), tickLabelInsets.getLeft() + tickLabelInsets.getRight());
+
+    }
+
+    /**
+     * Estimates the maximum width of the tick labels, assuming the specified
+     * tick unit is used.
+     * <P>
+     * Rather than computing the string bounds of every tick on the axis, we
+     * just look at two values: the lower bound and the upper bound for the
+     * axis.  These two values will usually be representative.
+     *
+     * @param g2  the graphics device.
+     * @param unit  the tick unit to use for calculation.
+     *
+     * @return The estimated maximum width of the tick labels.
+     */
     private double estimateMaximumTickLabelHeight(Graphics2D g2,
             DateTickUnit unit) {
 
         RectangleInsets tickLabelInsets = getTickLabelInsets();
-        double result = tickLabelInsets.getTop() + tickLabelInsets.getBottom();
-
-        Font tickLabelFont = getTickLabelFont();
-        FontRenderContext frc = g2.getFontRenderContext();
-        LineMetrics lm = tickLabelFont.getLineMetrics("ABCxyz", frc);
-        if (!isVerticalTickLabels()) {
-            // all tick labels have the same width (equal to the height of
-            // the font)...
-            result += lm.getHeight();
-        }
-        else {
-            // look at lower and upper bounds...
-            DateRange range = (DateRange) getRange();
-            Date lower = range.getLowerDate();
-            Date upper = range.getUpperDate();
-            String lowerStr, upperStr;
-            DateFormat formatter = getDateFormatOverride();
-            if (formatter != null) {
-                lowerStr = formatter.format(lower);
-                upperStr = formatter.format(upper);
-            }
-            else {
-                lowerStr = unit.dateToString(lower);
-                upperStr = unit.dateToString(upper);
-            }
-            FontMetrics fm = g2.getFontMetrics(tickLabelFont);
-            double w1 = fm.stringWidth(lowerStr);
-            double w2 = fm.stringWidth(upperStr);
-            result += Math.max(w1, w2);
-        }
-
-        return result;
+        return estimateMaximumTickLabelDimension(g2, unit, !isVerticalTickLabels(), tickLabelInsets.getTop() + tickLabelInsets.getBottom());
 
     }
 
@@ -1555,6 +1520,7 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
     protected List refreshTicksHorizontal(Graphics2D g2,
                 Rectangle2D dataArea, RectangleEdge edge) {
 
+//        return refreshTicksRefactored(g2, dataArea, edge, TextAnchor.CENTER_RIGHT, RectangleEdge.TOP, Math.PI, - Math.PI, TextAnchor.BOTTOM_CENTER, TextAnchor.TOP_CENTER, tickDate, tickLabel)
         List result = new java.util.ArrayList();
 
         Font tickLabelFont = getTickLabelFont();
@@ -1604,31 +1570,7 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
                 else {
                     tickLabel = this.tickUnit.dateToString(tickDate);
                 }
-                TextAnchor anchor, rotationAnchor;
-                double angle = 0.0;
-                if (isVerticalTickLabels()) {
-                    anchor = TextAnchor.CENTER_RIGHT;
-                    rotationAnchor = TextAnchor.CENTER_RIGHT;
-                    if (edge == RectangleEdge.TOP) {
-                        angle = Math.PI / 2.0;
-                    }
-                    else {
-                        angle = -Math.PI / 2.0;
-                    }
-                }
-                else {
-                    if (edge == RectangleEdge.TOP) {
-                        anchor = TextAnchor.BOTTOM_CENTER;
-                        rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                    }
-                    else {
-                        anchor = TextAnchor.TOP_CENTER;
-                        rotationAnchor = TextAnchor.TOP_CENTER;
-                    }
-                }
-
-                Tick tick = new DateTick(tickDate, tickLabel, anchor,
-                        rotationAnchor, angle);
+                Tick tick = getTickRefreshed(TextAnchor.CENTER_RIGHT, edge, RectangleEdge.TOP, Math.PI, - Math.PI, TextAnchor.BOTTOM_CENTER, TextAnchor.TOP_CENTER, tickDate, tickLabel);
                 result.add(tick);
                 hasRolled = false;
 
@@ -1721,31 +1663,7 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
                 else {
                     tickLabel = this.tickUnit.dateToString(tickDate);
                 }
-                TextAnchor anchor, rotationAnchor;
-                double angle = 0.0;
-                if (isVerticalTickLabels()) {
-                    anchor = TextAnchor.BOTTOM_CENTER;
-                    rotationAnchor = TextAnchor.BOTTOM_CENTER;
-                    if (edge == RectangleEdge.LEFT) {
-                        angle = -Math.PI / 2.0;
-                    }
-                    else {
-                        angle = Math.PI / 2.0;
-                    }
-                }
-                else {
-                    if (edge == RectangleEdge.LEFT) {
-                        anchor = TextAnchor.CENTER_RIGHT;
-                        rotationAnchor = TextAnchor.CENTER_RIGHT;
-                    }
-                    else {
-                        anchor = TextAnchor.CENTER_LEFT;
-                        rotationAnchor = TextAnchor.CENTER_LEFT;
-                    }
-                }
-
-                Tick tick = new DateTick(tickDate, tickLabel, anchor,
-                        rotationAnchor, angle);
+                Tick tick = getTickRefreshed(TextAnchor.BOTTOM_CENTER, edge, RectangleEdge.LEFT, - Math.PI, Math.PI, TextAnchor.CENTER_RIGHT, TextAnchor.CENTER_LEFT, tickDate, tickLabel);
                 result.add(tick);
                 hasRolled = false;
 
@@ -1772,6 +1690,35 @@ public class DateAxis extends ValueAxis implements Cloneable, Serializable {
             }
         }
         return result;
+    }
+
+    private Tick getTickRefreshed(TextAnchor originAnchor, RectangleEdge edge, RectangleEdge top, double pi, double PI, TextAnchor oneCenter, TextAnchor otherCenter, Date tickDate, String tickLabel) {
+        TextAnchor anchor, rotationAnchor;
+        double angle = 0.0;
+        if (isVerticalTickLabels()) {
+            anchor = originAnchor;
+            rotationAnchor = originAnchor;
+            if (edge == top) {
+                angle = pi / 2.0;
+            }
+            else {
+                angle = PI / 2.0;
+            }
+        }
+        else {
+            if (edge == top) {
+                anchor = oneCenter;
+                rotationAnchor = oneCenter;
+            }
+            else {
+                anchor = otherCenter;
+                rotationAnchor = otherCenter;
+            }
+        }
+
+        Tick tick = new DateTick(tickDate, tickLabel, anchor,
+                rotationAnchor, angle);
+        return tick;
     }
 
     /**
