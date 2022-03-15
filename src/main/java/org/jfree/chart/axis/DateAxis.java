@@ -1520,7 +1520,30 @@ public class DateAxis extends DatePeriodCommon implements Cloneable, Serializabl
     protected List refreshTicksHorizontal(Graphics2D g2,
                 Rectangle2D dataArea, RectangleEdge edge) {
 
-//        return refreshTicksRefactored(g2, dataArea, edge, TextAnchor.CENTER_RIGHT, RectangleEdge.TOP, Math.PI, - Math.PI, TextAnchor.BOTTOM_CENTER, TextAnchor.TOP_CENTER, tickDate, tickLabel)
+        DateTickUnit unit = getTickUnit();
+        Date tickDate = calculateLowestVisibleTickValue(unit);
+        return refreshTicksRefactored(g2, dataArea, edge, unit, tickDate, TextAnchor.CENTER_RIGHT, RectangleEdge.TOP, Math.PI, - Math.PI, TextAnchor.BOTTOM_CENTER, TextAnchor.TOP_CENTER);
+
+    }
+
+    /**
+     * Recalculates the ticks for the date axis.
+     *
+     * @param g2  the graphics device.
+     * @param dataArea  the area in which the plot should be drawn.
+     * @param edge  the location of the axis.
+     *
+     * @return A list of ticks.
+     */
+    protected List refreshTicksVertical(Graphics2D g2,
+                                        Rectangle2D dataArea, RectangleEdge edge) {
+
+        DateTickUnit unit = getTickUnit();
+        Date tickDate = calculateLowestVisibleTickValue(unit);
+        return refreshTicksRefactored(g2, dataArea, edge, unit, tickDate, TextAnchor.BOTTOM_CENTER, RectangleEdge.LEFT, - Math.PI, Math.PI, TextAnchor.CENTER_RIGHT, TextAnchor.CENTER_LEFT);
+    }
+
+    private List refreshTicksRefactored(Graphics2D g2, Rectangle2D dataArea, RectangleEdge edge, DateTickUnit unit, Date tickDate, TextAnchor originAnchor, RectangleEdge rectangleEdge, double pi, double pi1, TextAnchor oneCenter, TextAnchor otherCenter) {
         List result = new java.util.ArrayList();
 
         Font tickLabelFont = getTickLabelFont();
@@ -1530,8 +1553,6 @@ public class DateAxis extends DatePeriodCommon implements Cloneable, Serializabl
             selectAutoTickUnit(g2, dataArea, edge);
         }
 
-        DateTickUnit unit = getTickUnit();
-        Date tickDate = calculateLowestVisibleTickValue(unit);
         Date upperDate = getMaximumDate();
 
         boolean hasRolled = false;
@@ -1562,15 +1583,7 @@ public class DateAxis extends DatePeriodCommon implements Cloneable, Serializabl
 
             if (!isHiddenValue(tickDate.getTime())) {
                 // work out the value, label and position
-                String tickLabel;
-                DateFormat formatter = getDateFormatOverride();
-                if (formatter != null) {
-                    tickLabel = formatter.format(tickDate);
-                }
-                else {
-                    tickLabel = this.tickUnit.dateToString(tickDate);
-                }
-                Tick tick = getTickRefreshed(TextAnchor.CENTER_RIGHT, edge, RectangleEdge.TOP, Math.PI, - Math.PI, TextAnchor.BOTTOM_CENTER, TextAnchor.TOP_CENTER, tickDate, tickLabel);
+                Tick tick = getTickRefreshed(originAnchor, edge, rectangleEdge, pi, pi1, oneCenter, otherCenter, tickDate);
                 result.add(tick);
                 hasRolled = false;
 
@@ -1600,99 +1613,17 @@ public class DateAxis extends DatePeriodCommon implements Cloneable, Serializabl
 
         }
         return result;
-
     }
 
-    /**
-     * Recalculates the ticks for the date axis.
-     *
-     * @param g2  the graphics device.
-     * @param dataArea  the area in which the plot should be drawn.
-     * @param edge  the location of the axis.
-     *
-     * @return A list of ticks.
-     */
-    protected List refreshTicksVertical(Graphics2D g2,
-            Rectangle2D dataArea, RectangleEdge edge) {
-
-        List result = new java.util.ArrayList();
-
-        Font tickLabelFont = getTickLabelFont();
-        g2.setFont(tickLabelFont);
-
-        if (isAutoTickUnitSelection()) {
-            selectAutoTickUnit(g2, dataArea, edge);
+    private Tick getTickRefreshed(TextAnchor originAnchor, RectangleEdge edge, RectangleEdge top, double pi, double PI, TextAnchor oneCenter, TextAnchor otherCenter, Date tickDate) {
+        String tickLabel;
+        DateFormat formatter = getDateFormatOverride();
+        if (formatter != null) {
+            tickLabel = formatter.format(tickDate);
         }
-        DateTickUnit unit = getTickUnit();
-        Date tickDate = calculateLowestVisibleTickValue(unit);
-        Date upperDate = getMaximumDate();
-
-        boolean hasRolled = false;
-        while (tickDate.before(upperDate)) {
-
-            // could add a flag to make the following correction optional...
-            if (!hasRolled) {
-                tickDate = correctTickDateForPosition(tickDate, unit,
-                    this.tickMarkPosition);
-            }
-
-            long lowestTickTime = tickDate.getTime();
-            long distance = unit.addToDate(tickDate, this.timeZone).getTime()
-                    - lowestTickTime;
-            int minorTickSpaces = getMinorTickCount();
-            if (minorTickSpaces <= 0) {
-                minorTickSpaces = unit.getMinorTickCount();
-            }
-            for (int minorTick = 1; minorTick < minorTickSpaces; minorTick++) {
-                long minorTickTime = lowestTickTime - distance
-                        * minorTick / minorTickSpaces;
-                if (minorTickTime > 0 && getRange().contains(minorTickTime)
-                        && (!isHiddenValue(minorTickTime))) {
-                    result.add(new DateTick(TickType.MINOR,
-                            new Date(minorTickTime), "", TextAnchor.TOP_CENTER,
-                            TextAnchor.CENTER, 0.0));
-                }
-            }
-            if (!isHiddenValue(tickDate.getTime())) {
-                // work out the value, label and position
-                String tickLabel;
-                DateFormat formatter = getDateFormatOverride();
-                if (formatter != null) {
-                    tickLabel = formatter.format(tickDate);
-                }
-                else {
-                    tickLabel = this.tickUnit.dateToString(tickDate);
-                }
-                Tick tick = getTickRefreshed(TextAnchor.BOTTOM_CENTER, edge, RectangleEdge.LEFT, - Math.PI, Math.PI, TextAnchor.CENTER_RIGHT, TextAnchor.CENTER_LEFT, tickDate, tickLabel);
-                result.add(tick);
-                hasRolled = false;
-
-                long currentTickTime = tickDate.getTime();
-                tickDate = unit.addToDate(tickDate, this.timeZone);
-                long nextTickTime = tickDate.getTime();
-                for (int minorTick = 1; minorTick < minorTickSpaces;
-                        minorTick++) {
-                    long minorTickTime = currentTickTime
-                            + (nextTickTime - currentTickTime)
-                            * minorTick / minorTickSpaces;
-                    if (getRange().contains(minorTickTime)
-                            && (!isHiddenValue(minorTickTime))) {
-                        result.add(new DateTick(TickType.MINOR,
-                                new Date(minorTickTime), "",
-                                TextAnchor.TOP_CENTER, TextAnchor.CENTER,
-                                0.0));
-                    }
-                }
-            }
-            else {
-                tickDate = unit.rollDate(tickDate, this.timeZone);
-                hasRolled = true;
-            }
+        else {
+            tickLabel = this.tickUnit.dateToString(tickDate);
         }
-        return result;
-    }
-
-    private Tick getTickRefreshed(TextAnchor originAnchor, RectangleEdge edge, RectangleEdge top, double pi, double PI, TextAnchor oneCenter, TextAnchor otherCenter, Date tickDate, String tickLabel) {
         TextAnchor anchor, rotationAnchor;
         double angle = 0.0;
         if (isVerticalTickLabels()) {
