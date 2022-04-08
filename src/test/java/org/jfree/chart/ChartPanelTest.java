@@ -44,7 +44,11 @@ package org.jfree.chart;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+
+import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.EventListener;
 import java.util.List;
 
@@ -343,4 +347,40 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         panel.setMouseWheelEnabled(false);
         assertFalse(panel.isMouseWheelEnabled());
     }
+
+    @Test
+    public void testGetToolTipText() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        assertEquals(null,panel.getToolTipText(null));
+        // TODO test with a real MouseEvent
+    }
+
+    @Test
+    public void testScale() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300,200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300,200);
+        panel.paintComponent(g2);
+        // Insets are (0,0,0,0)
+        assertEquals(1.0,panel.getScaleX(),0.1);
+        assertEquals(1.0,panel.getScaleY(),0.1);
+        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
+                     panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setSize(150,50);
+        panel.paintComponent(g2);
+        assertEquals(0.5,panel.getScaleX(),0.1);
+        assertEquals(0.25,panel.getScaleY(),0.1);
+        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        g2.dispose();
+    }
+
 }

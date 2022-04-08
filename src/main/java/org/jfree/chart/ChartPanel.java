@@ -1403,7 +1403,7 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
         String result = null;
         if (this.info != null) {
             EntityCollection entities = this.info.getEntityCollection();
-            if (entities != null) {
+            if ((entities != null) && (entities.getEntityCount() > 0)) {
                 Insets insets = getInsets();
                 ChartEntity entity = entities.getEntity(
                         (int) ((e.getX() - insets.left) / this.scaleX),
