@@ -41,11 +41,14 @@
 
 package org.jfree.chart;
 
+import static org.jfree.chart.ChartPanel.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -55,8 +58,9 @@ import java.util.List;
 import javax.swing.event.CaretListener;
 
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.event.ChartChangeEvent;
-import org.jfree.chart.event.ChartChangeListener;
+import org.jfree.chart.event.*;
+import org.jfree.chart.panel.CrosshairOverlay;
+import org.jfree.chart.plot.Crosshair;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.DefaultXYDataset;
@@ -73,7 +77,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
      * Receives a chart change event and stores it in a list for later
      * inspection.
      *
-     * @param event  the event.
+     * @param event the event.
      */
     @Override
     public void chartChanged(ChartChangeEvent event) {
@@ -121,8 +125,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         boolean pass = false;
         try {
             listeners = p.getListeners((Class) null);
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             pass = true;
         }
         assertTrue(pass);
@@ -131,8 +134,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         pass = false;
         try {
             listeners = p.getListeners(Integer.class);
-        }
-        catch (ClassCastException e) {
+        } catch (ClassCastException e) {
             pass = true;
         }
         assertTrue(pass);
@@ -141,7 +143,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
     /**
      * Ignores a mouse click event.
      *
-     * @param event  the event.
+     * @param event the event.
      */
     @Override
     public void chartMouseClicked(ChartMouseEvent event) {
@@ -151,7 +153,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
     /**
      * Ignores a mouse move event.
      *
-     * @param event  the event.
+     * @param event the event.
      */
     @Override
     public void chartMouseMoved(ChartMouseEvent event) {
@@ -354,7 +356,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
                 "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
         ChartPanel panel = new ChartPanel(chart);
-        assertEquals(null,panel.getToolTipText(null));
+        assertEquals(null, panel.getToolTipText(null));
         // TODO test with a real MouseEvent
     }
 
@@ -365,22 +367,199 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
                 "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
         ChartPanel panel = new ChartPanel(chart);
         // scale is 0.0 by default and is only set by paintComponent
-        BufferedImage bi = new BufferedImage(300,200, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = bi.createGraphics();
-        panel.setSize(300,200);
+        panel.setSize(300, 200);
         panel.paintComponent(g2);
         // Insets are (0,0,0,0)
-        assertEquals(1.0,panel.getScaleX(),0.1);
-        assertEquals(1.0,panel.getScaleY(),0.1);
+        assertEquals(1.0, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
         assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
-                     panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setSize(150,50);
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setSize(150, 50);
         panel.paintComponent(g2);
-        assertEquals(0.5,panel.getScaleX(),0.1);
-        assertEquals(0.25,panel.getScaleY(),0.1);
+        assertEquals(0.5, panel.getScaleX(), 0.1);
+        assertEquals(0.25, panel.getScaleY(), 0.1);
         assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawWidth(500);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawHeight(200);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(2.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
                 panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
         g2.dispose();
     }
 
+    /**
+     * Same test as the previous one, but specifying no buffer to check that it has the same behaviour.
+     */
+    @Test
+    public void testPaintComponentNoBuffer() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart, false);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300, 200);
+        panel.paintComponent(g2);
+        // Insets are (0,0,0,0)
+        assertEquals(1.0, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setSize(150, 50);
+        panel.paintComponent(g2);
+        assertEquals(0.5, panel.getScaleX(), 0.1);
+        assertEquals(0.25, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawWidth(500);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawHeight(200);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(2.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        g2.dispose();
+    }
+
+    @Test
+    public void testPaintComponentNullChart() {
+        ChartPanel panel = new ChartPanel(null);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300, 200);
+        panel.paintComponent(g2);
+
+    }
+
+    /**
+     * Same test as the previous one, but specifying no buffer to check that it has the same behaviour.
+     */
+    @Test
+    public void testPaintComponentWithOverlays() {
+        CrosshairOverlay overlay = new CrosshairOverlay();
+        overlay.addDomainCrosshair(new Crosshair());
+        overlay.addRangeCrosshair(new Crosshair());
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart, false);
+        panel.addOverlay(overlay);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300, 200);
+        panel.paintComponent(g2);
+        // Insets are (0,0,0,0)
+        assertEquals(1.0, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setSize(150, 50);
+        panel.paintComponent(g2);
+        assertEquals(0.5, panel.getScaleX(), 0.1);
+        assertEquals(0.25, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawWidth(500);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawHeight(200);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(2.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        g2.dispose();
+    }
+
+    @Test
+    public void testActionPerformed() {
+        final boolean[] plotChanged = {false};
+
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        chart.getPlot().addChangeListener(new PlotChangeListener() {
+            @Override
+            public void plotChanged(PlotChangeEvent event) {
+                plotChanged[0] = true;
+            }
+        });
+
+        ChartPanel panel = new ChartPanel(chart);
+
+        ActionEvent event = new ActionEvent(new Object(), 0, ZOOM_IN_BOTH_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        plotChanged[0] = false;
+        event = new ActionEvent(new Object(), 0, ZOOM_IN_DOMAIN_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        plotChanged[0] = false;
+        event = new ActionEvent(new Object(), 0, ZOOM_IN_RANGE_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        event = new ActionEvent(new Object(), 0, ZOOM_OUT_BOTH_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        plotChanged[0] = false;
+        event = new ActionEvent(new Object(), 0, ZOOM_OUT_DOMAIN_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        plotChanged[0] = false;
+        event = new ActionEvent(new Object(), 0, ZOOM_OUT_RANGE_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        event = new ActionEvent(new Object(), 0, ZOOM_RESET_BOTH_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        plotChanged[0] = false;
+        event = new ActionEvent(new Object(), 0, ZOOM_RESET_BOTH_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        plotChanged[0] = false;
+        event = new ActionEvent(new Object(), 0, ZOOM_RESET_BOTH_COMMAND);
+        panel.actionPerformed(event);
+        assertTrue(plotChanged[0]);
+
+        event = new ActionEvent(new Object(), 0, COPY_COMMAND);
+        panel.actionPerformed(event);
+        Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        assertEquals("image/x-java-image; class=java.awt.Image", systemClipboard.getContents(this).getTransferDataFlavors()[0].getMimeType());
+
+    }
 }
