@@ -219,7 +219,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.EventListener;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -1761,6 +1760,10 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      */
     @Override
     public void mouseEntered(MouseEvent e) {
+        mouseEnteredAction();
+    }
+
+    void mouseEnteredAction() {
         if (!this.ownToolTipDelaysActive) {
             ToolTipManager ttm = ToolTipManager.sharedInstance();
 
@@ -1786,6 +1789,10 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      */
     @Override
     public void mouseExited(MouseEvent e) {
+        mouseExitedAction();
+    }
+
+    void mouseExitedAction() {
         if (this.ownToolTipDelaysActive) {
             // restore original tooltip dealys
             ToolTipManager ttm = ToolTipManager.sharedInstance();
@@ -1806,23 +1813,27 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      */
     @Override
     public void mousePressed(MouseEvent e) {
+        mousePressedAction(e.getX(), e.getY(), e.getPoint(), e.isPopupTrigger(), e.getModifiers());
+    }
+
+    void mousePressedAction(int cursorX, int cursorY, Point cursorPoint, boolean popupTrigger, int cursorModifiers) {
         if (this.chart == null) {
             return;
         }
         Plot plot = this.chart.getPlot();
-        int mods = e.getModifiers();
+        int mods = cursorModifiers;
         if ((mods & this.panMask) == this.panMask) {
             // can we pan this plot?
             if (plot instanceof Pannable) {
                 Pannable pannable = (Pannable) plot;
                 if (pannable.isDomainPannable() || pannable.isRangePannable()) {
-                    Rectangle2D screenDataArea = getScreenDataArea(e.getX(),
-                            e.getY());
+                    Rectangle2D screenDataArea = getScreenDataArea(cursorX,
+                            cursorY);
                     if (screenDataArea != null && screenDataArea.contains(
-                            e.getPoint())) {
+                            cursorPoint)) {
                         this.panW = screenDataArea.getWidth();
                         this.panH = screenDataArea.getHeight();
-                        this.panLast = e.getPoint();
+                        this.panLast = cursorPoint;
                         setCursor(Cursor.getPredefinedCursor(
                                 Cursor.MOVE_CURSOR));
                     }
@@ -1832,17 +1843,17 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
             }
         }
         else if (this.zoomRectangle == null) {
-            Rectangle2D screenDataArea = getScreenDataArea(e.getX(), e.getY());
+            Rectangle2D screenDataArea = getScreenDataArea(cursorX, cursorY);
             if (screenDataArea != null) {
-                this.zoomPoint = getPointInRectangle(e.getX(), e.getY(),
+                this.zoomPoint = getPointInRectangle(cursorX, cursorY,
                         screenDataArea);
             }
             else {
                 this.zoomPoint = null;
             }
-            if (e.isPopupTrigger()) {
+            if (popupTrigger) {
                 if (this.popup != null) {
-                    displayPopupMenu(e.getX(), e.getY());
+                    displayPopupMenu(cursorX, cursorY);
                 }
             }
         }
@@ -1858,7 +1869,7 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      *
      * @return A point within the rectangle.
      */
-    private Point2D getPointInRectangle(int x, int y, Rectangle2D area) {
+    Point2D getPointInRectangle(int x, int y, Rectangle2D area) {
         double xx = Math.max(area.getMinX(), Math.min(x, area.getMaxX()));
         double yy = Math.max(area.getMinY(), Math.min(y, area.getMaxY()));
         return new Point2D.Double(xx, yy);
@@ -3318,6 +3329,18 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
             this.chart.addChangeListener(this);
         }
 
+    }
+
+    public boolean isOwnToolTipDelaysActive() {
+        return ownToolTipDelaysActive;
+    }
+
+    public Point getPanLast() {
+        return panLast;
+    }
+
+    public Point2D getZoomPoint() {
+        return zoomPoint;
     }
 
 }

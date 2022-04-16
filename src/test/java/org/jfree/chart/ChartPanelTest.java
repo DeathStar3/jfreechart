@@ -42,14 +42,13 @@
 package org.jfree.chart;
 
 import static org.jfree.chart.ChartPanel.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.EventListener;
@@ -60,11 +59,13 @@ import javax.swing.event.CaretListener;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.event.*;
 import org.jfree.chart.panel.CrosshairOverlay;
-import org.jfree.chart.plot.Crosshair;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.plot.*;
+import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.xy.DefaultXYDataset;
 import org.junit.Test;
+import org.mockito.invocation.Invocation;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 /**
  * Tests for the {@link ChartPanel} class.
@@ -561,5 +562,115 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         assertEquals("image/x-java-image; class=java.awt.Image", systemClipboard.getContents(this).getTransferDataFlavors()[0].getMimeType());
 
+    }
+
+    @Test
+    public void testMouseEnteredExitedInteractions() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.mouseEnteredAction();
+        assertTrue(panel.isOwnToolTipDelaysActive());
+        panel.mouseExitedAction();
+        assertFalse(panel.isOwnToolTipDelaysActive());
+    }
+
+    @Test
+    public void testMousePressedPannableButNotDomainNorRange() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        Point cursorPoint = new Point(10, 20);
+        panel.mousePressedAction(10, 20, cursorPoint, false, 2);
+        assertNull(panel.getPanLast());
+    }
+
+    @Test
+    public void testMousePressedPannable() {
+        XYPlot plot = mock(XYPlot.class);
+        when(plot.isDomainPannable()).thenReturn(true);
+        when(plot.isRangePannable()).thenReturn(true);
+        JFreeChart chart = new JFreeChart(plot);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        when(panel.getScreenDataArea(anyInt(),anyInt())).thenReturn(new Rectangle(10,10));
+        Point cursorPoint = new Point(0, 0);
+        panel.mousePressedAction(0, 0, cursorPoint, false, 2);
+        assertEquals(cursorPoint, panel.getPanLast());
+    }
+
+    @Test
+    public void testMousePressedNonPannable() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = new ChartPanel(chart);
+//        panel.mousePressedAction();
+        assertTrue(panel.isOwnToolTipDelaysActive());
+        panel.mouseExitedAction();
+        assertFalse(panel.isOwnToolTipDelaysActive());
+    }
+
+    @Test
+    public void testMousePressedNoModifiersZoomRectangle() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        when(panel.getScreenDataArea(anyInt(), anyInt())).thenReturn(new Rectangle(10,10));
+        Point cursorPoint = new Point(0, 0);
+        panel.mousePressedAction(0, 0, cursorPoint, false, 1);
+        assertEquals(cursorPoint, panel.getZoomPoint());
+    }
+
+    @Test
+    public void testMousePressedNoModifiersZoomRectangleNullScreenDataArea() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        when(panel.getScreenDataArea(anyInt(), anyInt())).thenReturn(null);
+        Point cursorPoint = new Point(0, 0);
+        panel.mousePressedAction(0, 0, cursorPoint, false, 1);
+        assertNull(panel.getZoomPoint());
+    }
+
+    @Test
+    public void testMousePressedNoModifiersPopupTrigger() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        when(panel.getScreenDataArea(anyInt(), anyInt())).thenReturn(new Rectangle(10,10));
+        final boolean[] displayPopupCalled = {false};
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocationOnMock) {
+                displayPopupCalled[0] = true;
+                return null;
+            }
+        }).when(panel).displayPopupMenu(anyInt(), anyInt());
+        Point cursorPoint = new Point(0, 0);
+        panel.mousePressedAction(0, 0, cursorPoint, true, 1);
+        assertTrue(displayPopupCalled[0]);
+    }
+
+    @Test
+    public void testGetPointInRectangle() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = new ChartPanel(chart);
+        Rectangle2D r2d = mock(Rectangle2D.class);
+        when(r2d.getMaxX()).thenReturn(100d);
+        when(r2d.getMaxY()).thenReturn(50d);
+
+        Point2D pointInRectangle = panel.getPointInRectangle(10, 20, r2d);
+        assertEquals(pointInRectangle.getX(), 10, 0.1);
+        assertEquals(pointInRectangle.getY(), 20, 0.1);
+
+        pointInRectangle = panel.getPointInRectangle(100, 200, r2d);
+        assertEquals(pointInRectangle.getX(), 100, 0.1);
+        assertEquals(pointInRectangle.getY(), 50, 0.1);
+
+        pointInRectangle = panel.getPointInRectangle(200, 200, r2d);
+        assertEquals(pointInRectangle.getX(), 100, 0.1);
+        assertEquals(pointInRectangle.getY(), 50, 0.1);
     }
 }
