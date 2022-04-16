@@ -41,10 +41,22 @@
 
 package org.jfree.chart;
 
-import static org.jfree.chart.ChartPanel.*;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.event.ChartChangeEvent;
+import org.jfree.chart.event.ChartChangeListener;
+import org.jfree.chart.event.PlotChangeEvent;
+import org.jfree.chart.event.PlotChangeListener;
+import org.jfree.chart.panel.CrosshairOverlay;
+import org.jfree.chart.plot.Crosshair;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.data.xy.DefaultXYDataset;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
+import javax.swing.event.CaretListener;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.event.ActionEvent;
@@ -54,18 +66,9 @@ import java.awt.image.BufferedImage;
 import java.util.EventListener;
 import java.util.List;
 
-import javax.swing.event.CaretListener;
-
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.event.*;
-import org.jfree.chart.panel.CrosshairOverlay;
-import org.jfree.chart.plot.*;
-import org.jfree.data.general.DefaultPieDataset;
-import org.jfree.data.xy.DefaultXYDataset;
-import org.junit.Test;
-import org.mockito.invocation.Invocation;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import static org.jfree.chart.ChartPanel.*;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests for the {@link ChartPanel} class.
@@ -382,6 +385,119 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         assertEquals(0.5, panel.getScaleX(), 0.1);
         assertEquals(0.25, panel.getScaleY(), 0.1);
         assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawWidth(500);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawHeight(200);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(2.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        g2.dispose();
+    }
+
+    /**
+     * Same test as the previous one, but specifying no buffer to check that it has the same behaviour.
+     */
+    @Test
+    public void testPaintComponentNoBuffer() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart, false);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300, 200);
+        panel.paintComponent(g2);
+        // Insets are (0,0,0,0)
+        assertEquals(1.0, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setSize(150, 50);
+        panel.paintComponent(g2);
+        assertEquals(0.5, panel.getScaleX(), 0.1);
+        assertEquals(0.25, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawWidth(500);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawHeight(200);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(2.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        g2.dispose();
+    }
+
+    @Test
+    public void testPaintComponentNullChart() {
+        ChartPanel panel = new ChartPanel(null);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300, 200);
+        panel.paintComponent(g2);
+
+    }
+
+    /**
+     * Same test as the previous one, but specifying no buffer to check that it has the same behaviour.
+     */
+    @Test
+    public void testPaintComponentWithOverlays() {
+        CrosshairOverlay overlay = new CrosshairOverlay();
+        overlay.addDomainCrosshair(new Crosshair());
+        overlay.addRangeCrosshair(new Crosshair());
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart, false);
+        panel.addOverlay(overlay);
+        // scale is 0.0 by default and is only set by paintComponent
+        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        panel.setSize(300, 200);
+        panel.paintComponent(g2);
+        // Insets are (0,0,0,0)
+        assertEquals(1.0, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setSize(150, 50);
+        panel.paintComponent(g2);
+        assertEquals(0.5, panel.getScaleX(), 0.1);
+        assertEquals(0.25, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawWidth(500);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(1.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
+                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
+        panel.setMaximumDrawHeight(200);
+        panel.setSize(600, 400);
+        panel.paintComponent(g2);
+        assertEquals(1.2, panel.getScaleX(), 0.1);
+        assertEquals(2.0, panel.getScaleY(), 0.1);
+        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
                 panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
         panel.setMaximumDrawWidth(500);
         panel.setSize(600, 400);
