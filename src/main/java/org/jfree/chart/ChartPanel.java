@@ -1890,30 +1890,7 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
 
         // handle panning if we have a start point
         if (this.panLast != null) {
-            double dx = e.getX() - this.panLast.getX();
-            double dy = e.getY() - this.panLast.getY();
-            if (dx == 0.0 && dy == 0.0) {
-                return;
-            }
-            double wPercent = -dx / this.panW;
-            double hPercent = dy / this.panH;
-            boolean old = this.chart.getPlot().isNotify();
-            this.chart.getPlot().setNotify(false);
-            Pannable p = (Pannable) this.chart.getPlot();
-            if (p.getOrientation() == PlotOrientation.VERTICAL) {
-                p.panDomainAxes(wPercent, this.info.getPlotInfo(),
-                        this.panLast);
-                p.panRangeAxes(hPercent, this.info.getPlotInfo(),
-                        this.panLast);
-            }
-            else {
-                p.panDomainAxes(hPercent, this.info.getPlotInfo(),
-                        this.panLast);
-                p.panRangeAxes(wPercent, this.info.getPlotInfo(),
-                        this.panLast);
-            }
-            this.panLast = e.getPoint();
-            this.chart.getPlot().setNotify(old);
+            mouseDraggedHandlePanning(e.getX(), e.getY(), e.getPoint());
             return;
         }
 
@@ -1931,37 +1908,7 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
             drawZoomRectangle(g2, true);
         }
 
-        boolean hZoom, vZoom;
-        if (this.orientation == PlotOrientation.HORIZONTAL) {
-            hZoom = this.rangeZoomable;
-            vZoom = this.domainZoomable;
-        }
-        else {
-            hZoom = this.domainZoomable;
-            vZoom = this.rangeZoomable;
-        }
-        Rectangle2D scaledDataArea = getScreenDataArea(
-                (int) this.zoomPoint.getX(), (int) this.zoomPoint.getY());
-        if (hZoom && vZoom) {
-            // selected rectangle shouldn't extend outside the data area...
-            double xmax = Math.min(e.getX(), scaledDataArea.getMaxX());
-            double ymax = Math.min(e.getY(), scaledDataArea.getMaxY());
-            this.zoomRectangle = new Rectangle2D.Double(
-                    this.zoomPoint.getX(), this.zoomPoint.getY(),
-                    xmax - this.zoomPoint.getX(), ymax - this.zoomPoint.getY());
-        }
-        else if (hZoom) {
-            double xmax = Math.min(e.getX(), scaledDataArea.getMaxX());
-            this.zoomRectangle = new Rectangle2D.Double(
-                    this.zoomPoint.getX(), scaledDataArea.getMinY(),
-                    xmax - this.zoomPoint.getX(), scaledDataArea.getHeight());
-        }
-        else if (vZoom) {
-            double ymax = Math.min(e.getY(), scaledDataArea.getMaxY());
-            this.zoomRectangle = new Rectangle2D.Double(
-                    scaledDataArea.getMinX(), this.zoomPoint.getY(),
-                    scaledDataArea.getWidth(), ymax - this.zoomPoint.getY());
-        }
+        setZoomRectangle(e.getX(), e.getY(), this.zoomPoint);
 
         // Draw the new zoom rectangle...
         if (this.useBuffer) {
@@ -1976,6 +1923,67 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
 
     }
 
+    void setZoomRectangle(int x, int y, Point2D zoomPoint) {
+        boolean hZoom, vZoom;
+        if (this.orientation == PlotOrientation.HORIZONTAL) {
+            hZoom = this.rangeZoomable;
+            vZoom = this.domainZoomable;
+        }
+        else {
+            hZoom = this.domainZoomable;
+            vZoom = this.rangeZoomable;
+        }
+        Rectangle2D scaledDataArea = getScreenDataArea(
+                (int) zoomPoint.getX(), (int) zoomPoint.getY());
+        if (hZoom && vZoom) {
+            // selected rectangle shouldn't extend outside the data area...
+            double xmax = Math.min(x, scaledDataArea.getMaxX());
+            double ymax = Math.min(y, scaledDataArea.getMaxY());
+            this.zoomRectangle = new Rectangle2D.Double(
+                    zoomPoint.getX(), zoomPoint.getY(),
+                    xmax - zoomPoint.getX(), ymax - zoomPoint.getY());
+        }
+        else if (hZoom) {
+            double xmax = Math.min(x, scaledDataArea.getMaxX());
+            this.zoomRectangle = new Rectangle2D.Double(
+                    zoomPoint.getX(), scaledDataArea.getMinY(),
+                    xmax - zoomPoint.getX(), scaledDataArea.getHeight());
+        }
+        else if (vZoom) {
+            double ymax = Math.min(y, scaledDataArea.getMaxY());
+            this.zoomRectangle = new Rectangle2D.Double(
+                    scaledDataArea.getMinX(), zoomPoint.getY(),
+                    scaledDataArea.getWidth(), ymax - zoomPoint.getY());
+        }
+    }
+
+    void mouseDraggedHandlePanning(int x, int y, Point point) {
+        double dx = x - this.panLast.getX();
+        double dy = y - this.panLast.getY();
+        if (dx == 0.0 && dy == 0.0) {
+            return;
+        }
+        double wPercent = -dx / this.panW;
+        double hPercent = dy / this.panH;
+        boolean old = this.chart.getPlot().isNotify();
+        this.chart.getPlot().setNotify(false);
+        Pannable p = (Pannable) this.chart.getPlot();
+        if (p.getOrientation() == PlotOrientation.VERTICAL) {
+            p.panDomainAxes(wPercent, this.info.getPlotInfo(),
+                    this.panLast);
+            p.panRangeAxes(hPercent, this.info.getPlotInfo(),
+                    this.panLast);
+        }
+        else {
+            p.panDomainAxes(hPercent, this.info.getPlotInfo(),
+                    this.panLast);
+            p.panRangeAxes(wPercent, this.info.getPlotInfo(),
+                    this.panLast);
+        }
+        this.panLast = point;
+        this.chart.getPlot().setNotify(old);
+    }
+
     /**
      * Handles a 'mouse released' event.  On Windows, we need to check if this
      * is a popup trigger, but only if we haven't already been tracking a zoom
@@ -1986,7 +1994,12 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
     @Override
     public void mouseReleased(MouseEvent e) {
 
-        // if we've been panning, we need to reset now that the mouse is 
+        mouseReleasedAction(e.getX(), e.getY(), e.isPopupTrigger(), this.zoomPoint);
+
+    }
+
+    void mouseReleasedAction(int x, int y, boolean popupTrigger, Point2D zoomPoint) {
+        // if we've been panning, we need to reset now that the mouse is
         // released...
         if (this.panLast != null) {
             this.panLast = null;
@@ -2004,48 +2017,17 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
                 vZoom = this.rangeZoomable;
             }
 
-            boolean zoomTrigger1 = hZoom && Math.abs(e.getX()
-                - this.zoomPoint.getX()) >= this.zoomTriggerDistance;
-            boolean zoomTrigger2 = vZoom && Math.abs(e.getY()
-                - this.zoomPoint.getY()) >= this.zoomTriggerDistance;
+            boolean zoomTrigger1 = hZoom && Math.abs(x
+                - zoomPoint.getX()) >= this.zoomTriggerDistance;
+            boolean zoomTrigger2 = vZoom && Math.abs(y
+                - zoomPoint.getY()) >= this.zoomTriggerDistance;
             if (zoomTrigger1 || zoomTrigger2) {
-                if ((hZoom && (e.getX() < this.zoomPoint.getX()))
-                    || (vZoom && (e.getY() < this.zoomPoint.getY()))) {
+                if ((hZoom && (x < zoomPoint.getX()))
+                    || (vZoom && (y < zoomPoint.getY()))) {
                     restoreAutoBounds();
                 }
                 else {
-                    double x, y, w, h;
-                    Rectangle2D screenDataArea = getScreenDataArea(
-                            (int) this.zoomPoint.getX(),
-                            (int) this.zoomPoint.getY());
-                    double maxX = screenDataArea.getMaxX();
-                    double maxY = screenDataArea.getMaxY();
-                    // for mouseReleased event, (horizontalZoom || verticalZoom)
-                    // will be true, so we can just test for either being false;
-                    // otherwise both are true
-                    if (!vZoom) {
-                        x = this.zoomPoint.getX();
-                        y = screenDataArea.getMinY();
-                        w = Math.min(this.zoomRectangle.getWidth(),
-                                maxX - this.zoomPoint.getX());
-                        h = screenDataArea.getHeight();
-                    }
-                    else if (!hZoom) {
-                        x = screenDataArea.getMinX();
-                        y = this.zoomPoint.getY();
-                        w = screenDataArea.getWidth();
-                        h = Math.min(this.zoomRectangle.getHeight(),
-                                maxY - this.zoomPoint.getY());
-                    }
-                    else {
-                        x = this.zoomPoint.getX();
-                        y = this.zoomPoint.getY();
-                        w = Math.min(this.zoomRectangle.getWidth(),
-                                maxX - this.zoomPoint.getX());
-                        h = Math.min(this.zoomRectangle.getHeight(),
-                                maxY - this.zoomPoint.getY());
-                    }
-                    Rectangle2D zoomArea = new Rectangle2D.Double(x, y, w, h);
+                    Rectangle2D zoomArea = getZoomArea(hZoom, vZoom, zoomPoint, this.zoomRectangle);
                     zoom(zoomArea);
                 }
                 this.zoomPoint = null;
@@ -2067,12 +2049,47 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
 
         }
 
-        else if (e.isPopupTrigger()) {
+        else if (popupTrigger) {
             if (this.popup != null) {
-                displayPopupMenu(e.getX(), e.getY());
+                displayPopupMenu(x, y);
             }
         }
+    }
 
+    Rectangle2D getZoomArea(boolean hZoom, boolean vZoom, Point2D zoomPoint, Rectangle2D zoomRectangle) {
+        double x, y, w, h;
+        Rectangle2D screenDataArea = getScreenDataArea(
+                (int) zoomPoint.getX(),
+                (int) zoomPoint.getY());
+        double maxX = screenDataArea.getMaxX();
+        double maxY = screenDataArea.getMaxY();
+        // for mouseReleased event, (horizontalZoom || verticalZoom)
+        // will be true, so we can just test for either being false;
+        // otherwise both are true
+        if (! vZoom) {
+            x = zoomPoint.getX();
+            y = screenDataArea.getMinY();
+            w = Math.min(zoomRectangle.getWidth(),
+                    maxX - zoomPoint.getX());
+            h = screenDataArea.getHeight();
+        }
+        else if (! hZoom) {
+            x = screenDataArea.getMinX();
+            y = zoomPoint.getY();
+            w = screenDataArea.getWidth();
+            h = Math.min(zoomRectangle.getHeight(),
+                    maxY - zoomPoint.getY());
+        }
+        else {
+            x = zoomPoint.getX();
+            y = zoomPoint.getY();
+            w = Math.min(zoomRectangle.getWidth(),
+                    maxX - zoomPoint.getX());
+            h = Math.min(zoomRectangle.getHeight(),
+                    maxY - zoomPoint.getY());
+        }
+        Rectangle2D zoomArea = new Rectangle2D.Double(x, y, w, h);
+        return zoomArea;
     }
 
     /**
@@ -2696,12 +2713,7 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      * @throws IOException if there is an I/O error.
      */
     public void doSaveAs() throws IOException {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setCurrentDirectory(this.defaultDirectoryForSaveAs);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                    localizationResources.getString("PNG_Image_Files"), "png");
-        fileChooser.addChoosableFileFilter(filter);
-        fileChooser.setFileFilter(filter);
+        JFileChooser fileChooser = createFileChooser("PNG_Image_Files", "png");
 
         int option = fileChooser.showSaveDialog(this);
         if (option == JFileChooser.APPROVE_OPTION) {
@@ -2722,37 +2734,13 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      * if the JFreeSVG library is on the classpath...if this library is not 
      * present, the method will fail.
      */
-    private void saveAsSVG(File f) throws IOException {
+    void saveAsSVG(File f) throws IOException {
         File file = f;
         if (file == null) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setCurrentDirectory(this.defaultDirectoryForSaveAs);
-            FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                    localizationResources.getString("SVG_Files"), "svg");
-            fileChooser.addChoosableFileFilter(filter);
-            fileChooser.setFileFilter(filter);
+            JFileChooser fileChooser = createFileChooser("SVG_Files", "svg");
 
             int option = fileChooser.showSaveDialog(this);
-            if (option == JFileChooser.APPROVE_OPTION) {
-                String filename = fileChooser.getSelectedFile().getPath();
-                if (isEnforceFileExtensions()) {
-                    if (!filename.endsWith(".svg")) {
-                        filename = filename + ".svg";
-                    }
-                }
-                file = new File(filename);
-                if (file.exists()) {
-                    String fileExists = localizationResources.getString(
-                            "FILE_EXISTS_CONFIRM_OVERWRITE");
-                    int response = JOptionPane.showConfirmDialog(this, 
-                            fileExists,
-                            localizationResources.getString("Save_as_SVG"),
-                            JOptionPane.OK_CANCEL_OPTION);
-                    if (response == JOptionPane.CANCEL_OPTION) {
-                        file = null;
-                    }
-                }
-            }
+            file = saveFile(option, fileChooser, ".svg", file, "Save_as_SVG");
         }
         
         if (file != null) {
@@ -2776,7 +2764,44 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
 
         }
     }
-    
+
+    File saveFile(int option, JFileChooser fileChooser, String suffix, File file, String saveAs) {
+        if (option == JFileChooser.APPROVE_OPTION) {
+            String filename = fileChooser.getSelectedFile().getPath();
+            if (isEnforceFileExtensions()) {
+                if (!filename.endsWith(suffix)) {
+                    filename = filename + suffix;
+                }
+            }
+            file = new File(filename);
+            if (file.exists()) {
+                file = dealWithExistingFile(file, JOptionPane.showConfirmDialog(this,
+                        localizationResources.getString(
+                                "FILE_EXISTS_CONFIRM_OVERWRITE"),
+                        localizationResources.getString(saveAs),
+                        JOptionPane.OK_CANCEL_OPTION));
+            }
+        }
+        return file;
+    }
+
+    File dealWithExistingFile(File file, int response) {
+        if (response == JOptionPane.CANCEL_OPTION) {
+            file = null;
+        }
+        return file;
+    }
+
+    JFileChooser createFileChooser(String description, String extension) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setCurrentDirectory(this.defaultDirectoryForSaveAs);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+                localizationResources.getString(description), extension);
+        fileChooser.addChoosableFileFilter(filter);
+        fileChooser.setFileFilter(filter);
+        return fileChooser;
+    }
+
     /**
      * Generates a string containing a rendering of the chart in SVG format.
      * This feature is only supported if the JFreeSVG library is included on 
@@ -2786,7 +2811,7 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
      *     {@code null} if there is a problem with the method invocation
      *     by reflection.
      */
-    private String generateSVG(int width, int height) {
+    String generateSVG(int width, int height) {
         Graphics2D g2 = createSVGGraphics2D(width, height);
         if (g2 == null) {
             throw new IllegalStateException("JFreeSVG library is not present.");
@@ -2845,34 +2870,10 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
     private void saveAsPDF(File f) {
         File file = f;
         if (file == null) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setCurrentDirectory(this.defaultDirectoryForSaveAs);
-            FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                    localizationResources.getString("PDF_Files"), "pdf");
-            fileChooser.addChoosableFileFilter(filter);
-            fileChooser.setFileFilter(filter);
+            JFileChooser fileChooser = createFileChooser("PDF_Files", "pdf");
 
             int option = fileChooser.showSaveDialog(this);
-            if (option == JFileChooser.APPROVE_OPTION) {
-                String filename = fileChooser.getSelectedFile().getPath();
-                if (isEnforceFileExtensions()) {
-                    if (!filename.endsWith(".pdf")) {
-                        filename = filename + ".pdf";
-                    }
-                }
-                file = new File(filename);
-                if (file.exists()) {
-                    String fileExists = localizationResources.getString(
-                            "FILE_EXISTS_CONFIRM_OVERWRITE");
-                    int response = JOptionPane.showConfirmDialog(this, 
-                            fileExists,
-                            localizationResources.getString("Save_as_PDF"),
-                            JOptionPane.OK_CANCEL_OPTION);
-                    if (response == JOptionPane.CANCEL_OPTION) {
-                        file = null;
-                    }
-                }
-            }
+            file = saveFile(option, fileChooser, ".pdf", file, "Save_as_PDF");
         }
         
         if (file != null) {
@@ -3339,8 +3340,16 @@ public class ChartPanel extends JPanel implements ChartChangeListener,
         return panLast;
     }
 
+    public void setPanLast(Point panLast) {
+        this.panLast = panLast;
+    }
+
     public Point2D getZoomPoint() {
         return zoomPoint;
+    }
+
+    public Rectangle2D getZoomRectangle() {
+        return zoomRectangle;
     }
 
 }

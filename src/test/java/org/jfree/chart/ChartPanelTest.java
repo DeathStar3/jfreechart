@@ -49,6 +49,7 @@ import org.jfree.chart.event.PlotChangeListener;
 import org.jfree.chart.panel.CrosshairOverlay;
 import org.jfree.chart.plot.Crosshair;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.ThermometerPlot;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.xy.DefaultXYDataset;
@@ -56,6 +57,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import javax.swing.*;
 import javax.swing.event.CaretListener;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -63,6 +65,7 @@ import java.awt.event.ActionEvent;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.EventListener;
 import java.util.List;
 
@@ -499,119 +502,6 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         assertEquals(2.0, panel.getScaleY(), 0.1);
         assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
                 panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setMaximumDrawWidth(500);
-        panel.setSize(600, 400);
-        panel.paintComponent(g2);
-        assertEquals(1.2, panel.getScaleX(), 0.1);
-        assertEquals(1.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setMaximumDrawHeight(200);
-        panel.setSize(600, 400);
-        panel.paintComponent(g2);
-        assertEquals(1.2, panel.getScaleX(), 0.1);
-        assertEquals(2.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        g2.dispose();
-    }
-
-    /**
-     * Same test as the previous one, but specifying no buffer to check that it has the same behaviour.
-     */
-    @Test
-    public void testPaintComponentNoBuffer() {
-        DefaultXYDataset dataset = new DefaultXYDataset();
-        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
-                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
-        ChartPanel panel = new ChartPanel(chart, false);
-        // scale is 0.0 by default and is only set by paintComponent
-        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = bi.createGraphics();
-        panel.setSize(300, 200);
-        panel.paintComponent(g2);
-        // Insets are (0,0,0,0)
-        assertEquals(1.0, panel.getScaleX(), 0.1);
-        assertEquals(1.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setSize(150, 50);
-        panel.paintComponent(g2);
-        assertEquals(0.5, panel.getScaleX(), 0.1);
-        assertEquals(0.25, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setMaximumDrawWidth(500);
-        panel.setSize(600, 400);
-        panel.paintComponent(g2);
-        assertEquals(1.2, panel.getScaleX(), 0.1);
-        assertEquals(1.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setMaximumDrawHeight(200);
-        panel.setSize(600, 400);
-        panel.paintComponent(g2);
-        assertEquals(1.2, panel.getScaleX(), 0.1);
-        assertEquals(2.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        g2.dispose();
-    }
-
-    @Test
-    public void testPaintComponentNullChart() {
-        ChartPanel panel = new ChartPanel(null);
-        // scale is 0.0 by default and is only set by paintComponent
-        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = bi.createGraphics();
-        panel.setSize(300, 200);
-        panel.paintComponent(g2);
-
-    }
-
-    /**
-     * Same test as the previous one, but specifying no buffer to check that it has the same behaviour.
-     */
-    @Test
-    public void testPaintComponentWithOverlays() {
-        CrosshairOverlay overlay = new CrosshairOverlay();
-        overlay.addDomainCrosshair(new Crosshair());
-        overlay.addRangeCrosshair(new Crosshair());
-        DefaultXYDataset dataset = new DefaultXYDataset();
-        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
-                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
-        ChartPanel panel = new ChartPanel(chart, false);
-        panel.addOverlay(overlay);
-        // scale is 0.0 by default and is only set by paintComponent
-        BufferedImage bi = new BufferedImage(300, 200, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = bi.createGraphics();
-        panel.setSize(300, 200);
-        panel.paintComponent(g2);
-        // Insets are (0,0,0,0)
-        assertEquals(1.0, panel.getScaleX(), 0.1);
-        assertEquals(1.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setSize(150, 50);
-        panel.paintComponent(g2);
-        assertEquals(0.5, panel.getScaleX(), 0.1);
-        assertEquals(0.25, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(5.0, 5.0, 15.0, 10.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setMaximumDrawWidth(500);
-        panel.setSize(600, 400);
-        panel.paintComponent(g2);
-        assertEquals(1.2, panel.getScaleX(), 0.1);
-        assertEquals(1.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(12.0, 20.0, 36.0, 40.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
-        panel.setMaximumDrawHeight(200);
-        panel.setSize(600, 400);
-        panel.paintComponent(g2);
-        assertEquals(1.2, panel.getScaleX(), 0.1);
-        assertEquals(2.0, panel.getScaleY(), 0.1);
-        assertEquals(new Rectangle2D.Double(12.0, 40.0, 36.0, 80.0),
-                panel.scale(new Rectangle2D.Double(10.0, 20.0, 30.0, 40.0)));
         g2.dispose();
     }
 
@@ -721,7 +611,7 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         DefaultPieDataset dataset = new DefaultPieDataset();
         JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
         ChartPanel panel = new ChartPanel(chart);
-//        panel.mousePressedAction();
+        panel.mouseEnteredAction();
         assertTrue(panel.isOwnToolTipDelaysActive());
         panel.mouseExitedAction();
         assertFalse(panel.isOwnToolTipDelaysActive());
@@ -789,4 +679,200 @@ public class ChartPanelTest implements ChartChangeListener, ChartMouseListener {
         assertEquals(pointInRectangle.getX(), 100, 0.1);
         assertEquals(pointInRectangle.getY(), 50, 0.1);
     }
+
+    @Test
+    public void testSetZoomRectangleNoZoomable() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setZoomRectangle(10, 20, new Point(10, 20));
+        assertNull(panel.getZoomRectangle());
+    }
+
+    @Test
+    public void testSetZoomRectangleVerticalPlotZoomable() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setZoomRectangle(10, 20, new Point(10, 20));
+        assertEquals(new Rectangle2D.Double(10d, 20d, -10d, -20d), panel.getZoomRectangle());
+    }
+
+    @Test
+    public void testSetZoomRectangleHorizontalPlotZoomable() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.HORIZONTAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setZoomRectangle(10, 20, new Point(10, 20));
+        assertEquals(new Rectangle2D.Double(10d, 20d, -10d, -20d), panel.getZoomRectangle());
+    }
+
+    @Test
+    public void testSetZoomRectanglePlotZoomableRange() {
+        JFreeChart chart = new JFreeChart(new ThermometerPlot());
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setZoomRectangle(10, 20, new Point(10, 20));
+        assertEquals(new Rectangle2D.Double(0d, 20d, 0d, -20d), panel.getZoomRectangle());
+    }
+
+    @Test
+    public void testhandlePanningVertical() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setPanLast(new Point(15, 15));
+        Point point = new Point(20, 30);
+        panel.mouseDraggedHandlePanning(10, 20, point);
+        assertEquals(point, panel.getPanLast());
+    }
+
+    @Test
+    public void testhandlePanningHorizontal() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.HORIZONTAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setPanLast(new Point(15, 15));
+        Point point = new Point(20, 30);
+        panel.mouseDraggedHandlePanning(10, 20, point);
+        assertEquals(point, panel.getPanLast());
+    }
+
+    @Test
+    public void testMouseReleasedNotNullPanLast() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.HORIZONTAL, false, false, false);
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setPanLast(new Point(15, 15));
+        Point point = new Point(20, 30);
+        panel.mouseDraggedHandlePanning(10, 20, point);
+        assertEquals(point, panel.getPanLast());
+    }
+
+    @Test
+    public void testGetZoomAreaDoubleZoom() {
+        JFreeChart chart = new JFreeChart(new ThermometerPlot());
+        ChartPanel panel = new ChartPanel(chart);
+        Rectangle2D zoomArea = panel.getZoomArea(true, true, new Point(10, 10), new Rectangle(15, 30));
+        assertEquals(new Rectangle2D.Double(10d, 10d, -10d, -10d), zoomArea);
+    }
+
+    @Test
+    public void testGetZoomAreaHZoom() {
+        JFreeChart chart = new JFreeChart(new ThermometerPlot());
+        ChartPanel panel = new ChartPanel(chart);
+        Rectangle2D zoomArea = panel.getZoomArea(true, false, new Point(10, 10), new Rectangle(15, 30));
+//        when(panel.getScreenDataArea(anyInt(),anyInt())).thenReturn(new Rectangle(10,10));
+        assertEquals(new Rectangle2D.Double(10d, 0d, -10d, 0d), zoomArea);
+    }
+
+    @Test
+    public void testGetZoomAreaVZoom() {
+        JFreeChart chart = new JFreeChart(new ThermometerPlot());
+        ChartPanel panel = new ChartPanel(chart);
+        Rectangle2D zoomArea = panel.getZoomArea(false, true, new Point(10, 10), new Rectangle(15, 30));
+//        when(panel.getScreenDataArea(anyInt(),anyInt())).thenReturn(new Rectangle(10,10));
+        assertEquals(new Rectangle2D.Double(0d, 10d, 0d, -10d), zoomArea);
+    }
+
+    @Test
+    public void testMouseReleasedPopupTrigger() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        when(panel.getScreenDataArea(anyInt(), anyInt())).thenReturn(new Rectangle(10,10));
+        final boolean[] displayPopupCalled = {false};
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocationOnMock) {
+                displayPopupCalled[0] = true;
+                return null;
+            }
+        }).when(panel).displayPopupMenu(anyInt(), anyInt());
+        panel.mouseReleasedAction(0, 0, true, new Point(10, 10));
+        assertTrue(displayPopupCalled[0]);
+    }
+
+    @Test
+    public void testMouseReleasedPanLast() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        JFreeChart chart = ChartFactory.createPieChart("TestChart", dataset);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        panel.setPanLast(new Point(15, 15));
+        panel.mouseReleasedAction(0, 0, true, new Point(10, 10));
+        assertNull(panel.getPanLast());
+    }
+
+    @Test
+    public void testMouseReleasedZoomRectangle() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        panel.setPanLast(null);
+        panel.setZoomRectangle(10, 20, new Point(10, 20));
+        doNothing().when(panel).displayPopupMenu(anyInt(), anyInt());
+        panel.mouseReleasedAction(0, 0, true, new Point(10, 10));
+        assertNull(panel.getZoomRectangle());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGenerateSVGNull() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        panel.generateSVG(100, 200);
+    }
+
+    @Test
+    public void testSaveNullFile() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        JFileChooser jFileChooser = mock(JFileChooser.class);
+        when(jFileChooser.getSelectedFile()).thenReturn(new File("/test/path"));
+        File file = panel.saveFile(JFileChooser.APPROVE_OPTION, jFileChooser, ".ext", null, "save_as");
+        assertEquals("/test/path.ext", file.getPath());
+    }
+
+    @Test
+    public void testDealWithExistingFileCancel() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        File file = mock(File.class);
+        File fileToSave = panel.dealWithExistingFile(file, JOptionPane.CANCEL_OPTION);
+        assertNull(fileToSave);
+    }
+
+    @Test
+    public void testDealWithExistingFileNotCancel() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        File file = mock(File.class);
+        File fileToSave = panel.dealWithExistingFile(file, JOptionPane.OK_OPTION);
+        assertEquals(file, fileToSave);
+    }
+
+    @Test
+    public void testCreateFileChooser() {
+        DefaultXYDataset dataset = new DefaultXYDataset();
+        JFreeChart chart = ChartFactory.createXYLineChart("TestChart", "X",
+                "Y", dataset, PlotOrientation.VERTICAL, false, false, false);
+        ChartPanel panel = spy(new ChartPanel(chart));
+        JFileChooser fileChooser = panel.createFileChooser("PDF_Files", "ext");
+        assertTrue(fileChooser.getFileFilter().accept(new File("test.ext")));
+        assertFalse(fileChooser.getFileFilter().accept(new File("test.other")));
+    }
+
+
 }
