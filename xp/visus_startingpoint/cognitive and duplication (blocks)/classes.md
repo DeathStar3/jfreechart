@@ -1,8 +1,0 @@
-- org.jfree.chart.plot.CategoryPlot
-- org.jfree.chart.plot.XYPlot
-- org.jfree.chart.axis.NumberAxis
-- org.jfree.chart.axis.DateAxis
-- org.jfree.chart.axis.CyclicNumberAxis
-- org.jfree.chart.plot.PiePlot
-- org.jfree.chart.renderer.category.AbstractCategoryItemRenderer
-- org.jfree.chart.ChartPanel
